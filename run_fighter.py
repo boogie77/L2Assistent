@@ -1,5 +1,5 @@
-"""Запуск управления персонажем типа для атаки"""
+"""Запуск управления персонажем атакующего типа для фарма"""
 from libs.fighter import Fighter
 
-character = Fighter(debug_mode=True)
-character.start()
+la2Character = Fighter(debug_mode=False, attack_mode=True)
+la2Character.start()
