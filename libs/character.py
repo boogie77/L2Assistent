@@ -36,12 +36,18 @@ class Character(object):
         self.hasTarget = None  # Признак наличия цели
         self.targetHP = None  # Количество пикселей со здоровьем Цели
         self.targetNoHP = None  # Количество пикселей с отсутствующим здоровьем цели
+        self.startAttackTime = None  # Время начала атаки
+        self.everyTenSecondsTargetHP = None  # Количество здоровья цели 10 секунд назад
+        self.everyTenSecondsTry = 0  # Количество попыток атаки цели (1 попытка = более 10 секунд цель не атакована)
+        self.currentTenSeconds = 0  # Текущая десятка секунд
         # Характеристики питомца
         self.petHP = None
         # Игровые характеристики
         self.isPickUpDrop = False  # Признак сбора дропа
         self.lastHealTime = None  # Время последнего лечения
         self.lastAttackTime = None  # Время последнего вызова атаки
+        self.maxNoAttackInterval = 600  # Выход из программы, если персонаж не атакует цели указаное кол-во секунд
+        self.lastAssistTime = None  # Время последнего вызова ассиста
         self.needRebuff = False  # Признак необходимости бафнуться
         self.lastBuffTime = None  # Дата последнего ребафа
         self.buffInterval = 600  # Интервал для основного бафа (в секундах)
@@ -115,18 +121,29 @@ class Character(object):
         """Действия для режима атаки"""
         if not self.attackMode:
             return
+
+        if self.hasTarget:
+            # Атаковать, если у цели есть шкала HP
+            if self.targetHP is not None and self.targetHP > 0 or self.targetNoHP is not None and self.targetNoHP > 0:
+                self.attackTarget()
+                self.callAssist()
+            # Закрыть цель, если это Игрок/NPC
+            else:
+                self.closeTarget()
+
         # Проверка на мертвую цель
         if self.hasTarget and self.targetHP == 0 and self.targetNoHP > 0:
             self.printLog("Цель мертва.")
             self.closeTarget()  # Сброс цели
             self.pickUpDrop()  # Поднятие дропа
 
-        # Если уровень HP цели больше 0 или цель уже атаковалась
-        if self.hasTarget:
-            if self.targetHP is not None and self.targetHP > 0 or self.targetNoHP is not None and self.targetNoHP > 0:
-                self.attackTarget()
-            else:
-                self.closeTarget()
+    def callAssist(self):
+        """Вызов ассиста у членов группы"""
+        # Если с момента последнего ассиста прошло более 10 секунд
+        now = time.time()
+        if self.lastAssistTime is None or int(now - self.lastAssistTime) >= 10:
+            self.sendCommandToParty("Assist")  # Вызов ассиста для членов группы
+            self.lastAssistTime = time.time()
 
     def healActions(self):
         """Действия для самолечения"""
@@ -163,6 +180,8 @@ class Character(object):
         # Не искать цель, если требуется ребаф
         elif self.needRebuff:
             return False
+        elif self.needRegularBuff:
+            return False
         else:
             return True
 
@@ -172,7 +191,7 @@ class Character(object):
         if self.lastAttackTime is not None:
             attack_interval = now-self.lastAttackTime
         else:
-            attack_interval = 99999
+            attack_interval = 999999
 
         self.needRebuff = (self.lastBuffTime is None) or (now - self.lastBuffTime) >= self.buffInterval
         self.needRegularBuff = (self.lastRegularBuffTime is None) or (now - self.lastRegularBuffTime) >= self.regularBuffInterval
@@ -184,6 +203,8 @@ class Character(object):
             if not self.hasTarget and attack_interval >= 10:
                 self.reBuff()
                 self.lastBuffTime = time.time()
+                # Подождем 10 секунд после ребафа
+                time.sleep(10)
 
         if self.needRegularBuff:
             self.printLog("Требуется регулярный бафф.")
@@ -191,8 +212,16 @@ class Character(object):
             if not self.hasTarget:
                 self.regularBuff()
                 self.lastRegularBuffTime = time.time()
-        # if self.needDanceSong:
-        #     self.printLog("Требуется DanceSong.")
+        if self.needDanceSong:
+            self.sendCommandToParty("DanceSong")
+            self.lastDanceSongTime = time.time()
+            self.lastAssistTime = time.time()
+
+    def sendCommandToParty(self, command):
+        """Отправка команд команде"""
+        if len(self.server.connectionList) > 0:
+            self.printLog("Отправка команды: %s" % command)
+            self.server.sendToAll(command)
 
     def attackTarget(self):
         """Атаковать цель"""
@@ -202,6 +231,48 @@ class Character(object):
             self.virtualKeyboard.F1.press()
         else:
             self._findAndClickImageTemplate_(template='images/attack_button.png', threshold=0.8, image_count=1, cache=True)
+
+        self.checkSuccessAttack()  # Проверка на успешную атаку цели
+
+    def checkSuccessAttack(self):
+        """Проверка на успешную атаку цели (на случай, если персонаж залип и не атакует цель)"""
+        if self.targetHP is None:
+            return
+        # Запомним время старта атаки
+        if self.startAttackTime is None:
+            self.startAttackTime = time.time()
+            self.everyTenSecondsTargetHP = self.targetHP
+        # Каждые 10 секунд проверяем на сколько удачно цель атакуется
+        else:
+            total_attack_time = int(time.time() - self.startAttackTime)
+            if total_attack_time < 10:
+                return
+            if total_attack_time % 10 == 0:
+                if total_attack_time // 10 > self.currentTenSeconds:
+                    # Если за последние 10 секунд здоровье цели не уменьшалось:
+                    if self.everyTenSecondsTargetHP >= self.targetHP:
+                        self.printLog("Цель не атакуется уже %s сек." % total_attack_time)
+                        self.everyTenSecondsTry += 1
+                        # Если цель не атакуется 30 секунд подряд
+                        if self.everyTenSecondsTry >= 3:
+                            self.cancelTargetAndStepBack()  # Отменим цель и сделаем пару шагов назад
+                    else:
+                        self.everyTenSecondsTry = 0
+                    # Каждые 10 секунд запоминаем HP цели
+                    self.everyTenSecondsTargetHP = self.targetHP
+                    self.currentTenSeconds = total_attack_time // 10
+
+    def cancelTargetAndStepBack(self):
+        """Отменить цель и сделать пару шагов назад"""
+        self.printLog("Персонаж застрял. Отмена цели.")
+        self.closeTarget()
+        self.virtualKeyboard.HOME.press()
+        time.sleep(0.5)
+        self.virtualKeyboard.DOWN_ARROW.down()
+        time.sleep(1.5)
+        self.virtualKeyboard.DOWN_ARROW.up()
+        time.sleep(0.5)
+        self.virtualKeyboard.UP_ARROW.press()
 
     def selfHeal(self):
         """Лечение"""
@@ -220,10 +291,80 @@ class Character(object):
         self.printLog("Активация регулярного бафа.")
         self._findAndClickImageTemplate_(template='images/regular_buff.png', threshold=0.8, image_count=1, cache=True)
 
+    def danceSong(self):
+        """Вызов DanceSong"""
+        self.printLog("Активация DanceSong")
+        if self.useKeyboard:
+            self.virtualKeyboard.LEFT_ALT.down()
+            time.sleep(0.1)
+            self.virtualKeyboard.N9.press()
+            time.sleep(0.02)
+            self.virtualKeyboard.LEFT_ALT.up()
+            time.sleep(0.1)
+        else:
+            self._findAndClickImageTemplate_(template='images/DanceSong.png', threshold=0.8, image_count=1, cache=True)
+
+    def rebuffHunter(self):
+        """Ребафф На сервере Hunter"""
+        self.virtualKeyboard.ESC.press()
+        time.sleep(0.5)
+        self.virtualKeyboard.LEFT_ALT.down()
+        time.sleep(0.5)
+        self.virtualKeyboard.B.press()
+        self.virtualKeyboard.LEFT_ALT.up()
+        time.sleep(0.5)
+        self.screen.refreshPrintScreen()
+        self._findAndClickImageTemplate_(template='images/buffs.png', threshold=0.8, image_count=1)
+        time.sleep(0.5)
+        self.screen.refreshPrintScreen()
+        self._findAndClickImageTemplate_(template='images/FullBuff.png', threshold=0.8, image_count=1)
+        time.sleep(0.5)
+        self.screen.refreshPrintScreen()
+        self._findAndClickImageTemplate_(template='images/buff_all.png', threshold=0.8, image_count=1)
+        time.sleep(0.5)
+
+        self.virtualKeyboard.ESC.press();
+        time.sleep(0.5)
+        self.virtualKeyboard.LEFT_ALT.down()
+        time.sleep(0.5)
+        self.virtualKeyboard.B.press()
+        self.virtualKeyboard.LEFT_ALT.up()
+        time.sleep(0.5)
+        self.screen.refreshPrintScreen()
+        self._findAndClickImageTemplate_(template='images/buffs.png', threshold=0.8, image_count=1)
+        time.sleep(0.5)
+        self.screen.refreshPrintScreen()
+        self._findAndClickImageTemplate_(template='images/DS.png', threshold=0.8, image_count=1)
+        time.sleep(0.5)
+        self.screen.refreshPrintScreen()
+        self._findAndClickImageTemplate_(template='images/buff_all.png', threshold=0.8, image_count=1)
+        time.sleep(0.5)
+        self.virtualKeyboard.ESC.press();
+
+    def assist(self):
+        """Вызов Ассиста"""
+        self.printLog("Ассист")
+        if self.useKeyboard:
+            self.virtualKeyboard.LEFT_ALT.down()
+            time.sleep(0.1)
+            self.virtualKeyboard.N1.press()
+            time.sleep(0.02)
+            self.virtualKeyboard.LEFT_ALT.up()
+            time.sleep(0.1)
+        else:
+            self._findAndClickImageTemplate_(template='images/assist.png', threshold=0.8, image_count=1, cache=True)
+
     def checkCharacterDead(self):
         """Проверка на смерть персонажа"""
         areas = self.screen.findImageOnScreen(template='images/in_city.png', threshold=0.8, result_count=1, cache=False)
         self.isDead = len(areas) > 0
+
+    def checkLastAttackTime(self):
+        """Проверка на последнее время атаки. Если персонаж не атакует цели длительное время, то программа закроется"""
+        now = time.time()
+        if (self.lastAttackTime is not None) and (now-self.lastAttackTime >= self.maxNoAttackInterval):
+            self.printLog("Персонаж не атакует цели уже %s сек." % self.maxNoAttackInterval)
+            self.dispose()
 
     def exitIfDead(self):
         """Выход, если персонаж мертв"""
@@ -279,12 +420,14 @@ class Character(object):
 
     def getNextTarget(self):
         """Получение ближайшей цели (Нажатие макроса /nexttarget)"""
+
         self.printLog("Поиск ближейшей цели")
         if self.useKeyboard:
             self.virtualKeyboard.F11.press()
         else:
             self._findAndClickImageTemplate_(template='images/nexttarget_button.png', threshold=0.8, image_count=1, cache=True)
         time.sleep(0.25)
+
         self.screen.refreshPrintScreen()
         self.getTargetSpecifications()
 
@@ -305,6 +448,14 @@ class Character(object):
         thread_drop = threading.Thread(target=self._threadPickUpDrop_, args=[count])
         thread_drop.start()
 
+    def _threadPickUpDrop_(self, count):
+        """Поднятие дропа (Нажатие клавиши F4)"""
+        self.isPickUpDrop = True
+        for i in range(1, count):
+            self.virtualKeyboard.F4.press()
+            time.sleep(0.2)
+        self.isPickUpDrop = False
+
     def closeTarget(self):
         """Сброс цели (нажатие клавиши ESC)"""
         self.virtualKeyboard.ESC.press()
@@ -312,13 +463,11 @@ class Character(object):
         self.hasTarget = None
         self.targetHP = None
         self.targetNoHP = None
-
-    def _threadPickUpDrop_(self, count):
-        self.isPickUpDrop = True
-        for i in range(1, count):
-            self.virtualKeyboard.F4.press()
-            time.sleep(0.2)
-        self.isPickUpDrop = False
+        self.startAttackTime = None
+        self.everyTenSecondsTargetHP = None
+        self.everyTenSecondsTry = 0
+        self.currentTenSeconds = 0
+        self.lastAssistTime = None
 
     def _findAndClickImageTemplate_(self, template, threshold=0.8, image_count=1, cache=False):
         """Поиск и клик по изображению на экране"""
@@ -358,6 +507,7 @@ class Character(object):
     def dispose(self):
         """Деструктор"""
         self.isRunning = False
+        self.virtualKeyboard.LEFT_ALT.up()
         self.virtualKeyboard.stop()
         self.printLog("Отключение программы.")
         os._exit(1)

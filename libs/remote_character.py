@@ -5,6 +5,7 @@ import win32com.client
 import socket
 import configparser
 import threading
+import time
 
 
 class RemoteCharacter(Character):
@@ -124,8 +125,7 @@ class RemoteCharacter(Character):
         if len(commands) == 1:
             command = commands[0]
             if command == 'F1':
-                # self.virtualKeyboard.F1.press()
-                self.pressYes()
+                self.virtualKeyboard.F1.press()
             if command == 'F2':
                 self.virtualKeyboard.F2.press()
             if command == 'F3':
@@ -142,3 +142,10 @@ class RemoteCharacter(Character):
                 self.virtualKeyboard.F8.press()
             if command == 'F9':
                 self.virtualKeyboard.F9.press()
+            if command == 'YES':
+                time.sleep(0.5)
+                self.pressYes()
+            if command == 'DanceSong':
+                self.danceSong()
+            if command == 'Assist':
+                self.assist()()

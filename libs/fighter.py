@@ -16,6 +16,7 @@ class Fighter(Character):
             self.findTargetActions()  # Выполнение действий для поиска цели
             self.healActions()  # Выполнение действий для самолечения
             self.exitIfDead()  # Выход из программы, если персонаж мерт
+            self.checkLastAttackTime()  # Выход из программы, если персонаж не атакует цели длительное времч
 
     def startExtensions(self):
         """Запуск расширений"""
