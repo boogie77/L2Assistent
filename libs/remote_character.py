@@ -148,4 +148,12 @@ class RemoteCharacter(Character):
             if command == 'DanceSong':
                 self.danceSong()
             if command == 'Assist':
-                self.assist()()
+                self.assist()
+        elif len(commands) == 2:
+            command = commands[1]
+            parameter = commands[0]
+            if command == 'F1' and parameter == 'ALT':
+                self.pressYes()
+            elif command == 'F2' and parameter == 'ALT':
+                self.reBuff()
+

@@ -71,9 +71,9 @@ class TeamServer(object):
         """Формирование текста сообщения в зависимости от нажатых клавиш"""
         command = message
         if keyboard.LEFT_ALT.isPressed():
-            command = 'alt+' + command
+            command = 'ALT+' + command
         if keyboard.LEFT_CTRL.isPressed():
-            command = 'ctrl+' + command
+            command = 'CTRL+' + command
         return command
 
     def eventPressedN1(self, keyboard, event):
