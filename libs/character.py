@@ -212,6 +212,7 @@ class Character(object):
                 self.lastBuffTime = time.time()
                 # Подождем 10 секунд после ребафа
                 time.sleep(10)
+                return
 
         if self.needRegularBuff:
             self.printLog("Требуется регулярный бафф.")
@@ -219,13 +220,16 @@ class Character(object):
             if not self.hasTarget:
                 self.regularBuff()
                 self.lastRegularBuffTime = time.time()
+                return
         if self.needChantOfVictory:
             self.sendCommandToParty("CoV")
             self.lastChantOfVictoryTime = time.time()
+            return
         if self.needDanceSong:
             self.sendCommandToParty("DanceSong")
             self.lastDanceSongTime = time.time()
             self.lastAssistTime = time.time()
+            return
 
     def sendCommandToParty(self, command):
         """Отправка команд команде"""
