@@ -59,7 +59,7 @@ class Character(object):
         self.danceSongInterval = 100  # Интервал DanceSong (в секундах)
         self.needChantOfVictory = False  # Признак необходимости использовать Chant of Victory
         self.lastChantOfVictoryTime = None  # Дата последнего Chant of Victory
-        self.chantOfVictoryInterval = 100  # Интервал Chant of Victory (в секундах)
+        self.chantOfVictoryInterval = 280  # Интервал Chant of Victory (в секундах)
 
     def printLog(self, text):
         """Запись лога в консоль"""
@@ -223,12 +223,11 @@ class Character(object):
             self.lastAssistTime = time.time()
         if self.needChantOfVictory:
             self.sendCommandToParty("CoV")
-            self.chantOfVictoryInterval = time.time()
+            self.lastChantOfVictoryTime = time.time()
 
     def sendCommandToParty(self, command):
         """Отправка команд команде"""
         if len(self.server.connectionList) > 0:
-            self.printLog("Отправка команды: %s" % command)
             self.server.sendToAll(command)
 
     def attackTarget(self):

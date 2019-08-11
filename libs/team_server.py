@@ -55,7 +55,7 @@ class TeamServer(object):
 
     def sendToAll(self, message):
         """Отправка команд всем клиентам"""
-        printLog("Отправка комманды: %s" % message)
+        printLog("Отправка команды: %s" % message)
         for i in list(self.connectionList):
             try:
                 client = self.connectionList[i]
