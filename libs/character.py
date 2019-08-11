@@ -139,7 +139,8 @@ class Character(object):
             self.printLog("Цель мертва.")
             self.closeTarget()  # Сброс цели
             self.pickUpDrop()  # Поднятие дропа
-            self.sendCommandToParty("FollowMe")
+            if self.lastAssistTime is None or int(time.time() - self.lastAssistTime) >= 10:
+                self.sendCommandToParty("FollowMe")
 
     def callAssist(self):
         """Вызов ассиста у членов группы"""
