@@ -149,11 +149,21 @@ class RemoteCharacter(Character):
                 self.danceSong()
             if command == 'Assist':
                 self.assist()
+            if command == 'Buff':
+                self.reBuff()
+            if command == 'FollowMe':
+                self.followMe()
+            if command == 'CoV':
+                self.chantOfVictory()
         elif len(commands) == 2:
             command = commands[1]
             parameter = commands[0]
             if command == 'F1' and parameter == 'ALT':
+                self.printLog("Нажатие кнопки ДА")
                 self.pressYes()
             elif command == 'F2' and parameter == 'ALT':
+                self.printLog("Использование бафа")
                 self.reBuff()
-
+            elif command == 'F3' and parameter == 'ALT':
+                self.printLog("Использование Dance Song")
+                self.danceSong()

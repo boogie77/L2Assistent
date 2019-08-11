@@ -57,6 +57,9 @@ class Character(object):
         self.needDanceSong = False  # Признак необходимости использовать DanceSong
         self.lastDanceSongTime = None  # Дата последнего DanceSong
         self.danceSongInterval = 100  # Интервал DanceSong (в секундах)
+        self.needChantOfVictory = False  # Признак необходимости использовать Chant of Victory
+        self.lastChantOfVictoryTime = None  # Дата последнего Chant of Victory
+        self.chantOfVictoryInterval = 100  # Интервал Chant of Victory (в секундах)
 
     def printLog(self, text):
         """Запись лога в консоль"""
@@ -196,12 +199,14 @@ class Character(object):
         self.needRebuff = (self.lastBuffTime is None) or (now - self.lastBuffTime) >= self.buffInterval
         self.needRegularBuff = (self.lastRegularBuffTime is None) or (now - self.lastRegularBuffTime) >= self.regularBuffInterval
         self.needDanceSong = (self.lastDanceSongTime is None) or (now - self.lastDanceSongTime) >= self.danceSongInterval
+        self.needChantOfVictory = (self.lastChantOfVictoryTime is None) or (now - self.lastChantOfVictoryTime) >= self.chantOfVictoryInterval
 
         if self.needRebuff:
             self.printLog("Требуется ребаф.")
             # Запустим ребаф, если с момента последней атаки прошло более 10 секунд
             if not self.hasTarget and attack_interval >= 10:
                 self.reBuff()
+                self.sendCommandToParty("Buff")
                 self.lastBuffTime = time.time()
                 # Подождем 10 секунд после ребафа
                 time.sleep(10)
@@ -216,6 +221,9 @@ class Character(object):
             self.sendCommandToParty("DanceSong")
             self.lastDanceSongTime = time.time()
             self.lastAssistTime = time.time()
+        if self.needChantOfVictory:
+            self.sendCommandToParty("CoV")
+            self.chantOfVictoryInterval = time.time()
 
     def sendCommandToParty(self, command):
         """Отправка команд команде"""
@@ -284,7 +292,15 @@ class Character(object):
     def reBuff(self):
         """Запуск ребафа"""
         self.printLog("Активация ребафа.")
-        self._findAndClickImageTemplate_(template='images/buff_button.png', threshold=0.8, image_count=1, cache=True)
+        if self.useKeyboard:
+            self.virtualKeyboard.LEFT_ALT.down()
+            time.sleep(0.1)
+            self.virtualKeyboard.N9.press()
+            time.sleep(0.02)
+            self.virtualKeyboard.LEFT_ALT.up()
+            time.sleep(0.1)
+        else:
+            self._findAndClickImageTemplate_(template='images/buff_button.png', threshold=0.8, image_count=1, cache=True)
 
     def regularBuff(self):
         """Запуск регулярного бафа"""
@@ -297,7 +313,20 @@ class Character(object):
         if self.useKeyboard:
             self.virtualKeyboard.LEFT_ALT.down()
             time.sleep(0.1)
-            self.virtualKeyboard.N9.press()
+            self.virtualKeyboard.N0.press()
+            time.sleep(0.02)
+            self.virtualKeyboard.LEFT_ALT.up()
+            time.sleep(0.1)
+        else:
+            self._findAndClickImageTemplate_(template='images/DanceSong.png', threshold=0.8, image_count=1, cache=True)
+
+    def chantOfVictory(self):
+        """Вызов Chant of Victory"""
+        self.printLog("Активация Chant of Victory")
+        if self.useKeyboard:
+            self.virtualKeyboard.LEFT_ALT.down()
+            time.sleep(0.1)
+            self.virtualKeyboard.N6.press()
             time.sleep(0.02)
             self.virtualKeyboard.LEFT_ALT.up()
             time.sleep(0.1)
@@ -347,12 +376,26 @@ class Character(object):
         if self.useKeyboard:
             self.virtualKeyboard.LEFT_ALT.down()
             time.sleep(0.1)
-            self.virtualKeyboard.N1.press()
+            self.virtualKeyboard.N8.press()
             time.sleep(0.02)
             self.virtualKeyboard.LEFT_ALT.up()
             time.sleep(0.1)
         else:
             self._findAndClickImageTemplate_(template='images/assist.png', threshold=0.8, image_count=1, cache=True)
+
+    def followMe(self):
+        """Призывает всех участников группы идти за лидером группы"""
+        self.printLog("Идти за лидером группы.")
+        if self.useKeyboard:
+            self.virtualKeyboard.LEFT_ALT.down()
+            time.sleep(0.1)
+            self.virtualKeyboard.N7.press()
+            time.sleep(0.02)
+            self.virtualKeyboard.LEFT_ALT.up()
+            time.sleep(0.1)
+        else:
+            self._findAndClickImageTemplate_(template='images/assist.png', threshold=0.8, image_count=1, cache=True)
+
 
     def checkCharacterDead(self):
         """Проверка на смерть персонажа"""
