@@ -219,11 +219,11 @@ class Character(object):
                 self.lastRegularBuffTime = time.time()
         if self.needChantOfVictory:
             self.sendCommandToParty("CoV")
-            self.lastChantOfVictoryTime = time.time()
-        if self.needDanceSong:
+            self.lastChantOfVictoryTi        if self.needDanceSong:
             self.sendCommandToParty("DanceSong")
             self.lastDanceSongTime = time.time()
-            self.lastAssistTime = time.time()
+            self.lastAssistTime = time.time()me = time.time()
+
 
     def sendCommandToParty(self, command):
         """Отправка команд команде"""
