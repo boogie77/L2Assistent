@@ -139,6 +139,7 @@ class Character(object):
             self.printLog("Цель мертва.")
             self.closeTarget()  # Сброс цели
             self.pickUpDrop()  # Поднятие дропа
+            self.sendCommandToParty("FollowMe")
 
     def callAssist(self):
         """Вызов ассиста у членов группы"""
