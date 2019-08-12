@@ -47,7 +47,6 @@ class Character(object):
         self.lastHealTime = None  # Время последнего лечения
         self.lastAttackTime = None  # Время последнего вызова атаки
         self.maxNoAttackInterval = 600  # Выход из программы, если персонаж не атакует цели указаное кол-во секунд
-        self.lastAssistTime = None  # Время последнего вызова ассиста
         self.needRebuff = False  # Признак необходимости бафнуться
         self.lastBuffTime = None  # Дата последнего ребафа
         self.buffInterval = 600  # Интервал для основного бафа (в секундах)
@@ -60,6 +59,7 @@ class Character(object):
         self.needChantOfVictory = False  # Признак необходимости использовать Chant of Victory
         self.lastChantOfVictoryTime = None  # Дата последнего Chant of Victory
         self.chantOfVictoryInterval = 280  # Интервал Chant of Victory (в секундах)
+        self.lastCommandTime = None  # Время последней отправки команды членам группы
 
     def printLog(self, text):
         """Запись лога в консоль"""
@@ -139,16 +139,7 @@ class Character(object):
             self.printLog("Цель мертва.")
             self.closeTarget()  # Сброс цели
             self.pickUpDrop()  # Поднятие дропа
-            if self.lastAssistTime is None or int(time.time() - self.lastAssistTime) >= 10:
-                self.sendCommandToParty("FollowMe")
-
-    def callAssist(self):
-        """Вызов ассиста у членов группы"""
-        # Если с момента последнего ассиста прошло более 10 секунд
-        now = time.time()
-        if self.lastAssistTime is None or int(now - self.lastAssistTime) >= 10:
-            self.sendCommandToParty("Assist")  # Вызов ассиста для членов группы
-            self.lastAssistTime = time.time()
+            self.callFollowMe()  # Подозвать всех членов группы к себе
 
     def healActions(self):
         """Действия для самолечения"""
@@ -213,7 +204,6 @@ class Character(object):
                 # Подождем 10 секунд после ребафа
                 time.sleep(10)
                 return
-
         if self.needRegularBuff:
             self.printLog("Требуется регулярный бафф.")
             # Запустим регулярный баф, если нет цели
@@ -222,19 +212,17 @@ class Character(object):
                 self.lastRegularBuffTime = time.time()
                 return
         if self.needChantOfVictory:
-            self.sendCommandToParty("CoV")
-            self.lastChantOfVictoryTime = time.time()
+            self.callChantOfVictory()
             return
         if self.needDanceSong:
-            self.sendCommandToParty("DanceSong")
-            self.lastDanceSongTime = time.time()
-            self.lastAssistTime = time.time()
+            self.callDanceSong()
             return
 
     def sendCommandToParty(self, command):
         """Отправка команд команде"""
         if len(self.server.connectionList) > 0:
             self.server.sendToAll(command)
+            self.lastCommandTime = time.time()
 
     def attackTarget(self):
         """Атаковать цель"""
@@ -357,7 +345,7 @@ class Character(object):
         self._findAndClickImageTemplate_(template='images/buff_all.png', threshold=0.8, image_count=1)
         time.sleep(0.5)
 
-        self.virtualKeyboard.ESC.press();
+        self.virtualKeyboard.ESC.press()
         time.sleep(0.5)
         self.virtualKeyboard.LEFT_ALT.down()
         time.sleep(0.5)
@@ -373,7 +361,7 @@ class Character(object):
         self.screen.refreshPrintScreen()
         self._findAndClickImageTemplate_(template='images/buff_all.png', threshold=0.8, image_count=1)
         time.sleep(0.5)
-        self.virtualKeyboard.ESC.press();
+        self.virtualKeyboard.ESC.press()
 
     def assist(self):
         """Вызов Ассиста"""
@@ -400,7 +388,6 @@ class Character(object):
             time.sleep(0.1)
         else:
             self._findAndClickImageTemplate_(template='images/assist.png', threshold=0.8, image_count=1, cache=True)
-
 
     def checkCharacterDead(self):
         """Проверка на смерть персонажа"""
@@ -515,7 +502,35 @@ class Character(object):
         self.everyTenSecondsTargetHP = None
         self.everyTenSecondsTry = 0
         self.currentTenSeconds = 0
-        self.lastAssistTime = None
+
+    def callAssist(self):
+        """Вызов ассиста у членов группы"""
+        # Если с момента последней команды прошло более 10 секунд
+        now = time.time()
+        if self.lastCommandTime is None or int(now - self.lastCommandTime) >= 10:
+            self.sendCommandToParty("Assist")  # Вызов ассиста для членов группы
+
+    def callFollowMe(self):
+        """Вызов всех членов группы к себе"""
+        now = time.time()
+        if self.lastCommandTime is None or int(now - self.lastCommandTime) >= 10:
+            self.sendCommandToParty("FollowMe")
+
+    def callDanceSong(self):
+        """Вызов Dance & Song для членов группы"""
+        # Если с момента последнего ассиста прошло более 10 секунд
+        now = time.time()
+        if self.lastCommandTime is None or int(now - self.lastCommandTime) >= 10:
+            self.sendCommandToParty("DanceSong")
+            self.lastDanceSongTime = time.time()
+
+    def callChantOfVictory(self):
+        """Вызов Chant Of Victory для членов группы"""
+        # Если с момента последнего ассиста прошло более 10 секунд
+        now = time.time()
+        if self.lastCommandTime is None or int(now - self.lastCommandTime) >= 10:
+            self.sendCommandToParty("CoV")
+            self.lastChantOfVictoryTime = time.time()
 
     def _findAndClickImageTemplate_(self, template, threshold=0.8, image_count=1, cache=False):
         """Поиск и клик по изображению на экране"""
