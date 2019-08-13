@@ -9,6 +9,7 @@ class Fighter(Character):
         """Главный метод логики работы бота"""
         # Обратный отсчет (сек)
         self.countDown(5)
+        self.pressOkTeamViewer()  # Нажатие ОК в TeamViewer
         while self.isRunning:
             self.commonActions()  # Выполнение общих действий
             self.rebuffActions()  # Выполнение действий для бафа
