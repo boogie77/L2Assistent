@@ -501,7 +501,6 @@ class Character(object):
         time.sleep(seconds)
         self.allowSendCommand = True
 
-
     def closeTarget(self):
         """Сброс цели (нажатие клавиши ESC)"""
         self.virtualKeyboard.ESC.press()
