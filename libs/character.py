@@ -46,6 +46,7 @@ class Character(object):
         self.isPickUpDrop = False  # Признак сбора дропа
         self.lastHealTime = None  # Время последнего лечения
         self.lastAttackTime = None  # Время последнего вызова атаки
+        self.lastAssistTime = None  # Время последнего вызова ассиста
         self.maxNoAttackInterval = 600  # Выход из программы, если персонаж не атакует цели указаное кол-во секунд
         self.needRebuff = False  # Признак необходимости бафнуться
         self.lastBuffTime = None  # Дата последнего ребафа
@@ -59,7 +60,7 @@ class Character(object):
         self.needChantOfVictory = False  # Признак необходимости использовать Chant of Victory
         self.lastChantOfVictoryTime = None  # Дата последнего Chant of Victory
         self.chantOfVictoryInterval = 280  # Интервал Chant of Victory (в секундах)
-        self.lastCommandTime = None  # Время последней отправки команды членам группы
+        self.allowSendCommand = True  # Разрешение на отправку команды членам группы
 
     def printLog(self, text):
         """Запись лога в консоль"""
@@ -199,8 +200,7 @@ class Character(object):
             # Запустим ребаф, если с момента последней атаки прошло более 10 секунд
             if not self.hasTarget and attack_interval >= 10:
                 self.reBuff()
-                self.sendCommandToParty("Buff")
-                self.lastBuffTime = time.time()
+                self.callBuff()
                 # Подождем 10 секунд после ребафа
                 time.sleep(10)
                 return
@@ -222,7 +222,6 @@ class Character(object):
         """Отправка команд команде"""
         if len(self.server.connectionList) > 0:
             self.server.sendToAll(command)
-            self.lastCommandTime = time.time()
 
     def attackTarget(self):
         """Атаковать цель"""
@@ -491,6 +490,18 @@ class Character(object):
             time.sleep(0.2)
         self.isPickUpDrop = False
 
+    def blockSendCommand(self, seconds=10):
+        """Блокировка отправки команд на указанное время в секундах"""
+        thread_block = threading.Thread(target=self._threadBlockSendCommand_, args=[seconds])
+        thread_block.start()
+
+    def _threadBlockSendCommand_(self, seconds=10):
+        """Блокировка отправления команд"""
+        self.allowSendCommand = False
+        time.sleep(seconds)
+        self.allowSendCommand = True
+
+
     def closeTarget(self):
         """Сброс цели (нажатие клавиши ESC)"""
         self.virtualKeyboard.ESC.press()
@@ -502,35 +513,46 @@ class Character(object):
         self.everyTenSecondsTargetHP = None
         self.everyTenSecondsTry = 0
         self.currentTenSeconds = 0
+        self.lastAssistTime = None
 
     def callAssist(self):
         """Вызов ассиста у членов группы"""
-        # Если с момента последней команды прошло более 10 секунд
-        now = time.time()
-        if self.lastCommandTime is None or int(now - self.lastCommandTime) >= 10:
-            self.sendCommandToParty("Assist")  # Вызов ассиста для членов группы
+        if self.allowSendCommand:
+            # Если с момента последнего ассиста прошло более 10 секунд
+            now = time.time()
+            if self.lastAssistTime is None or int(now - self.lastAssistTime) >= 10:
+                self.sendCommandToParty("Assist")  # Вызов ассиста для членов группы
+                self.lastAssistTime = now
+                self.blockSendCommand(2)
 
     def callFollowMe(self):
         """Вызов всех членов группы к себе"""
-        now = time.time()
-        if self.lastCommandTime is None or int(now - self.lastCommandTime) >= 10:
+        if self.allowSendCommand:
             self.sendCommandToParty("FollowMe")
+            self.blockSendCommand(2)
 
     def callDanceSong(self):
         """Вызов Dance & Song для членов группы"""
-        # Если с момента последнего ассиста прошло более 10 секунд
-        now = time.time()
-        if self.lastCommandTime is None or int(now - self.lastCommandTime) >= 10:
+        if self.allowSendCommand:
+            # Если с момента последнего ассиста прошло более 10 секунд
             self.sendCommandToParty("DanceSong")
             self.lastDanceSongTime = time.time()
+            self.blockSendCommand(6)
 
     def callChantOfVictory(self):
         """Вызов Chant Of Victory для членов группы"""
-        # Если с момента последнего ассиста прошло более 10 секунд
-        now = time.time()
-        if self.lastCommandTime is None or int(now - self.lastCommandTime) >= 10:
+        if self.allowSendCommand:
+            # Если с момента последнего ассиста прошло более 10 секунд
             self.sendCommandToParty("CoV")
             self.lastChantOfVictoryTime = time.time()
+            self.blockSendCommand(2)
+
+    def callBuff(self):
+        """Вызов бафа от членов группы"""
+        if self.allowSendCommand:
+            self.sendCommandToParty("Buff")
+            self.lastBuffTime = time.time()
+            self.blockSendCommand(15)
 
     def _findAndClickImageTemplate_(self, template, threshold=0.8, image_count=1, cache=False):
         """Поиск и клик по изображению на экране"""
