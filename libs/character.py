@@ -45,6 +45,7 @@ class Character(object):
         # Игровые характеристики
         self.isPickUpDrop = False  # Признак сбора дропа
         self.lastHealTime = None  # Время последнего лечения
+        self.lastPartyHealTime = None  # Время последнего лечения от членов группы
         self.lastAttackTime = None  # Время последнего вызова атаки
         self.lastAssistTime = None  # Время последнего вызова ассиста
         self.maxNoAttackInterval = 600  # Выход из программы, если персонаж не атакует цели указаное кол-во секунд
@@ -151,6 +152,11 @@ class Character(object):
                 self.printLog("Самолечение.")
                 self.selfHeal()
                 self.lastHealTime = now
+
+            if self.HP <= 50:
+                # Лечение от членов группы
+                if self.lastPartyHealTime is None or int(now - self.lastPartyHealTime) >= 10:
+                    self.callHeal()
 
     def findTargetActions(self):
         """Действия для поиска цели"""
@@ -552,6 +558,13 @@ class Character(object):
             self.sendCommandToParty("Buff")
             self.lastBuffTime = time.time()
             self.blockSendCommand(15)
+
+    def callHeal(self):
+        """Вызов хила от членов группы"""
+        if self.allowSendCommand:
+            self.sendCommandToParty("Heal")
+            self.blockSendCommand(3)
+            self.lastPartyHealTime = time.time()
 
     def _findAndClickImageTemplate_(self, template, threshold=0.8, image_count=1, cache=False):
         """Поиск и клик по изображению на экране"""

@@ -155,6 +155,8 @@ class RemoteCharacter(Character):
                 self.followMe()
             if command == 'CoV':
                 self.chantOfVictory()
+            if command == 'Heal':
+                self.self.selfHeal()
         elif len(commands) == 2:
             command = commands[1]
             parameter = commands[0]
