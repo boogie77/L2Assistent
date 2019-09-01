@@ -1,4 +1,4 @@
-# Общий класс управления персонажами
+﻿# Общий класс управления персонажами
 from libs.character import Character
 
 
@@ -8,7 +8,7 @@ class Fighter(Character):
     def main(self):
         """Главный метод логики работы бота"""
         # Обратный отсчет (сек)
-        self.countDown(5)
+        self.countDown(10)
         self.pressOkTeamViewer()  # Нажатие ОК в TeamViewer
         while self.isRunning:
             self.commonActions()  # Выполнение общих действий

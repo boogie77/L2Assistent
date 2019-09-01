@@ -1,4 +1,4 @@
-# Библиотеки для управления виртуальной клавиатурой и мышью
+﻿# Библиотеки для управления виртуальной клавиатурой и мышью
 from AutoHotPy import AutoHotPy
 # Библиотека для захвата и анализа экрана
 from libs.screen import ScreenTools
@@ -153,7 +153,7 @@ class Character(object):
                 self.selfHeal()
                 self.lastHealTime = now
 
-            if self.HP <= 50:
+            if self.HP <= 75:
                 # Лечение от членов группы
                 if self.lastPartyHealTime is None or int(now - self.lastPartyHealTime) >= 10:
                     self.callHeal()
@@ -259,14 +259,14 @@ class Character(object):
                     if self.everyTenSecondsTargetHP >= self.targetHP:
                         self.printLog("Цель не атакуется уже %s сек." % total_attack_time)
                         self.everyTenSecondsTry += 1
-                        # Если цель не атакуется 30 секунд подряд
-                        if self.everyTenSecondsTry >= 3:
+                        # Если цель не атакуется 120 секунд подряд
+                        if self.everyTenSecondsTry >= 12:
                             self.cancelTargetAndStepBack()  # Отменим цель и сделаем пару шагов назад
                     else:
                         self.everyTenSecondsTry = 0
-                    # Каждые 10 секунд запоминаем HP цели
-                    self.everyTenSecondsTargetHP = self.targetHP
-                    self.currentTenSeconds = total_attack_time // 10
+                # Каждые 10 секунд запоминаем HP цели
+                self.everyTenSecondsTargetHP = self.targetHP
+                self.currentTenSeconds = total_attack_time // 10
 
     def cancelTargetAndStepBack(self):
         """Отменить цель и сделать пару шагов назад"""
@@ -303,7 +303,11 @@ class Character(object):
     def regularBuff(self):
         """Запуск регулярного бафа"""
         self.printLog("Активация регулярного бафа.")
-        self._findAndClickImageTemplate_(template='images/regular_buff.png', threshold=0.8, image_count=1, cache=True)
+        if self.useKeyboard:
+            self.virtualKeyboard.F10.press()
+        else:
+            self._findAndClickImageTemplate_(template='images/regular_buff.png', threshold=0.8, image_count=1, cache=True)
+        time.sleep(1)
 
     def danceSong(self):
         """Вызов DanceSong"""
@@ -563,7 +567,7 @@ class Character(object):
         """Вызов хила от членов группы"""
         if self.allowSendCommand:
             self.sendCommandToParty("Heal")
-            self.blockSendCommand(3)
+            self.blockSendCommand(2)
             self.lastPartyHealTime = time.time()
 
     def _findAndClickImageTemplate_(self, template, threshold=0.8, image_count=1, cache=False):

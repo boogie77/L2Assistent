@@ -111,4 +111,3 @@ class TeamServer(object):
     def eventPressedN9(self, keyboard, event):
         """Событие при нажатии NUM 9"""
         self.sendToAll(self._buildMessageText_(keyboard=keyboard, event=event, message="F9"))
-
