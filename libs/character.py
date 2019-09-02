@@ -153,10 +153,14 @@ class Character(object):
                 self.selfHeal()
                 self.lastHealTime = now
 
-            if self.HP <= 75:
+            if self.HP <= 65:
                 # Лечение от членов группы
                 if self.lastPartyHealTime is None or int(now - self.lastPartyHealTime) >= 10:
                     self.callHeal()
+
+            if 1 <= self.HP <= 25:
+                # Полное лечение если здоровье на критической отметке
+                self.selfFullHeal()
 
     def findTargetActions(self):
         """Действия для поиска цели"""
@@ -256,11 +260,13 @@ class Character(object):
             if total_attack_time % 10 == 0:
                 if total_attack_time // 10 > self.currentTenSeconds:
                     # Если за последние 10 секунд здоровье цели не уменьшалось:
-                    if self.everyTenSecondsTargetHP >= self.targetHP:
+                    if self.everyTenSecondsTargetHP <= self.targetHP:
                         self.printLog("Цель не атакуется уже %s сек." % total_attack_time)
+                        self.printLog("10 Секунд назад было %s ХП, а сейчас: %s." % (str(self.everyTenSecondsTargetHP), str(self.targetHP)))
                         self.everyTenSecondsTry += 1
-                        # Если цель не атакуется 120 секунд подряд
-                        if self.everyTenSecondsTry >= 12:
+                        # Если цель не атакуется 30 секунд подряд
+                        if self.everyTenSecondsTry >= 3:
+                            self.printLog("Отмена цели.")
                             self.cancelTargetAndStepBack()  # Отменим цель и сделаем пару шагов назад
                     else:
                         self.everyTenSecondsTry = 0
@@ -286,6 +292,19 @@ class Character(object):
             self.virtualKeyboard.F5.press()
         else:
             self._findAndClickImageTemplate_(template='images/heal.png', threshold=0.8, image_count=1, cache=True)
+
+    def selfFullHeal(self):
+        """Вызов DanceSong"""
+        self.printLog("Активация Полного лечения")
+        if self.useKeyboard:
+            self.virtualKeyboard.LEFT_ALT.down()
+            time.sleep(0.1)
+            self.virtualKeyboard.N4.press()
+            time.sleep(0.02)
+            self.virtualKeyboard.LEFT_ALT.up()
+            time.sleep(0.1)
+        else:
+            self._findAndClickImageTemplate_(template='images/full_heal.png', threshold=0.8, image_count=1, cache=True)
 
     def reBuff(self):
         """Запуск ребафа"""
