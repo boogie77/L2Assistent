@@ -27,6 +27,7 @@ class Character(object):
         self.virtualKeyboard.registerExit(self.virtualKeyboard.ESC, self.stopAutoHotPy)
         self.screen = ScreenTools()  # Средство анализа экрана
         self.server = None  # Средство для удаленного управления персонажами
+        self.blockKeyboard = False  # Блокирование клавиатуры
         # Характеристики персонажа
         self.HP = None
         self.MP = None
@@ -211,8 +212,8 @@ class Character(object):
             if not self.hasTarget and attack_interval >= 10:
                 self.reBuff()
                 self.callBuff()
-                # Подождем 10 секунд после ребафа
-                time.sleep(10)
+                # Подождем 5 секунд после ребафа
+                time.sleep(5)
                 return
         if self.needRegularBuff:
             self.printLog("Требуется регулярный бафф.")
@@ -297,12 +298,14 @@ class Character(object):
         """Вызов DanceSong"""
         self.printLog("Активация Полного лечения")
         if self.useKeyboard:
+            self.blockKeyboard = True
             self.virtualKeyboard.LEFT_ALT.down()
             time.sleep(0.1)
             self.virtualKeyboard.N4.press()
             time.sleep(0.02)
             self.virtualKeyboard.LEFT_ALT.up()
             time.sleep(0.1)
+            self.blockKeyboard = False
         else:
             self._findAndClickImageTemplate_(template='images/full_heal.png', threshold=0.8, image_count=1, cache=True)
 
@@ -515,8 +518,9 @@ class Character(object):
         """Поднятие дропа (Нажатие клавиши F4)"""
         self.isPickUpDrop = True
         for i in range(1, count):
-            self.virtualKeyboard.F4.press()
-            time.sleep(0.2)
+            if not self.blockKeyboard:
+                self.virtualKeyboard.F4.press()
+                time.sleep(0.3)
         self.isPickUpDrop = False
 
     def blockSendCommand(self, seconds=10):
