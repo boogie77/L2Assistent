@@ -65,7 +65,7 @@ class Character(object):
         self.allowSendCommand = True  # Разрешение на отправку команды членам группы
         self.fishingLine = None  # Текущая длина полоски рыбалки
         self.fishingPriorLine = None  # Предыдущая длина полоски рыбалки
-        self.fishingLineInterval = 1  # Интервал обновления информации по длине полоски
+        self.fishingLineInterval = 0.7  # Интервал обновления информации по длине полоски
         self.lastFishingLineTime = None  # Время последней проверки полоски рыбалки
 
     def printLog(self, text):
@@ -560,7 +560,7 @@ class Character(object):
         self.getTargetSpecifications()
 
     def mainFishing(self):
-        """Нажатие клавиш для фишинга"""
+        """Главное тело логики рыбалки. Нажатие клавиш для фишинга"""
         # Алгоритм для процесса рыбалки
         if self.fishingLine is not None and self.fishingLine > 0:
             # Получим значение шкалы рыбалки 3 секунды ранее:
