@@ -144,6 +144,8 @@ class Character(object):
         """Общие действия для квеста"""
         self.virtualKeyboard.ESC.press()
         time.sleep(0.5)
+        self.virtualKeyboard.ESC.press()
+        time.sleep(0.5)
         self.findQuestTarget()
         time.sleep(5)
         self.screen.refreshPrintScreen()
@@ -151,12 +153,10 @@ class Character(object):
         if self.hasTarget:
             self.attackTarget()
             time.sleep(5)
-            self.screen.refreshPrintScreen()
-            self.pressQuest()
-            time.sleep(1)
-            self.screen.refreshPrintScreen()
-            self.pressLookInside()
-            time.sleep(1)
+            # 5 попыток определить диалоговое окно и поговорить с NPC
+            for i in range(5):
+                self.pressDialogButton()
+                time.sleep(1)
 
     def attackActions(self):
         """Действия для режима атаки"""
@@ -771,6 +771,24 @@ class Character(object):
         startX, startY = self.virtualKeyboard.getMousePosition()
         self._findAndClickImageTemplate_(template='images/quest_rus.png', threshold=0.8, image_count=1,
                                          cache=False)
+        # Возврат курсора на предыдущую координату
+        self.virtualKeyboard.mouse_move(startX, startY)
+
+    def pressDialogButton(self):
+        """Нажатие на диалоговую кнопку в диалоговом окне"""
+        self.screen.refreshPrintScreen()
+        # Запоминаем координаты курсора
+        startX, startY = self.virtualKeyboard.getMousePosition()
+        # Поиск изображения на экране
+        areas = self.screen.findImageOnScreen(template='images/dialog_line.png', threshold=0.85, result_count=1,
+                                              cache=False)
+        for area in areas:
+            x = area['x_center'] + 10
+            y = area['y_center'] - 10
+            self.virtualKeyboard.mouse_move(x, y)
+            time.sleep(0.1)
+            self.virtualKeyboard.click_left_mouse()
+            time.sleep(0.1)
         # Возврат курсора на предыдущую координату
         self.virtualKeyboard.mouse_move(startX, startY)
 
