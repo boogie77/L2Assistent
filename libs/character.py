@@ -128,6 +128,7 @@ class Character(object):
             cv2.waitKey(1)
 
     def fishingActions(self):
+        """Общие действия для рыбалки"""
         # Сбор информации и вывод лога
         self.screen.refreshPrintScreen()
         self.getCharacterSpecifications()
@@ -138,6 +139,21 @@ class Character(object):
         if self.debugMode:
             cv2.imshow('L2 Assistent Debug', self.screen.image)
             cv2.waitKey(1)
+
+    def questActions(self):
+        """Общие действия для квеста"""
+        self.virtualKeyboard.ESC.press()
+        time.sleep(0.5)
+        self.findQuestTarget()
+        time.sleep(0.5)
+        self.screen.refreshPrintScreen()
+        self.getTargetSpecifications()
+        if self.hasTarget:
+            self.attackTarget()
+            time.sleep(5)
+            self.screen.refreshPrintScreen()
+            self.pressQuest()
+
 
     def attackActions(self):
         """Действия для режима атаки"""
@@ -730,11 +746,39 @@ class Character(object):
     def pressYes(self):
         """Нажать кнопку "Да" (Например принять в группу)"""
         self.screen.refreshPrintScreen()
+        # Запоминаем координаты курсора
         startX, startY = self.virtualKeyboard.getMousePosition()
         self._findAndClickImageTemplate_(template='images/yes.png', threshold=0.8, image_count=1,
                                          cache=False)
         # Возврат курсора на предыдущую координату
         self.virtualKeyboard.mouse_move(startX, startY)
+
+    def pressQuest(self):
+        """Нажать на кнопку "Задание(квест)" в диалоговом окне"""
+        self.screen.refreshPrintScreen()
+        # Запоминаем координаты курсора
+        startX, startY = self.virtualKeyboard.getMousePosition()
+        self._findAndClickImageTemplate_(template='images/quest.png', threshold=0.8, image_count=1,
+                                         cache=False)
+        # Возврат курсора на предыдущую координату
+        self.virtualKeyboard.mouse_move(startX, startY)
+        # Т.к. квест может быть написано по-разному, то проверим другой вариант кнопки
+        self.screen.refreshPrintScreen()
+        # Запоминаем координаты курсора
+        startX, startY = self.virtualKeyboard.getMousePosition()
+        self._findAndClickImageTemplate_(template='images/quest_rus.png', threshold=0.8, image_count=1,
+                                         cache=False)
+        # Возврат курсора на предыдущую координату
+        self.virtualKeyboard.mouse_move(startX, startY)
+
+    def findQuestTarget(self):
+        """Поиск цели для квеста"""
+        self.printLog("Использование макроса Поиска цели")
+        if self.useKeyboard:
+            self.virtualKeyboard.F8.press()
+        else:
+            self._findAndClickImageTemplate_(template='images/target_quest.png', threshold=0.8, image_count=1,
+                                             cache=True)
 
     def stopAutoHotPy(self, autohotpy, event):
         """Остановка клавиатуры"""
