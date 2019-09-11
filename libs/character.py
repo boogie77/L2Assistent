@@ -720,14 +720,21 @@ class Character(object):
     def pressAccept(self):
         """Нажать кнопку "Принять" (Например принять торг)"""
         self.screen.refreshPrintScreen()
+        # Запоминаем координаты курсора
+        startX, startY = self.virtualKeyboard.getMousePosition()
         self._findAndClickImageTemplate_(template='images/accept.png', threshold=0.8, image_count=1,
                                          cache=False)
+        # Возврат курсора на предыдущую координату
+        self.virtualKeyboard.mouse_move(startX, startY)
 
     def pressYes(self):
         """Нажать кнопку "Да" (Например принять в группу)"""
         self.screen.refreshPrintScreen()
+        startX, startY = self.virtualKeyboard.getMousePosition()
         self._findAndClickImageTemplate_(template='images/yes.png', threshold=0.8, image_count=1,
                                          cache=False)
+        # Возврат курсора на предыдущую координату
+        self.virtualKeyboard.mouse_move(startX, startY)
 
     def stopAutoHotPy(self, autohotpy, event):
         """Остановка клавиатуры"""
