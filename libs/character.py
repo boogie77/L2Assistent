@@ -145,7 +145,7 @@ class Character(object):
         self.virtualKeyboard.ESC.press()
         time.sleep(0.5)
         self.findQuestTarget()
-        time.sleep(0.5)
+        time.sleep(5)
         self.screen.refreshPrintScreen()
         self.getTargetSpecifications()
         if self.hasTarget:
