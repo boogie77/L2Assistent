@@ -153,7 +153,10 @@ class Character(object):
             time.sleep(5)
             self.screen.refreshPrintScreen()
             self.pressQuest()
-
+            time.sleep(1)
+            self.screen.refreshPrintScreen()
+            self.pressLookInside()
+            time.sleep(1)
 
     def attackActions(self):
         """Действия для режима атаки"""
@@ -767,6 +770,16 @@ class Character(object):
         # Запоминаем координаты курсора
         startX, startY = self.virtualKeyboard.getMousePosition()
         self._findAndClickImageTemplate_(template='images/quest_rus.png', threshold=0.8, image_count=1,
+                                         cache=False)
+        # Возврат курсора на предыдущую координату
+        self.virtualKeyboard.mouse_move(startX, startY)
+
+    def pressLookInside(self):
+        """Нажатие кнопки "Look Inside" (для квеста на саб-класс)"""
+        self.screen.refreshPrintScreen()
+        # Запоминаем координаты курсора
+        startX, startY = self.virtualKeyboard.getMousePosition()
+        self._findAndClickImageTemplate_(template='images/Look_inside.png', threshold=0.8, image_count=1,
                                          cache=False)
         # Возврат курсора на предыдущую координату
         self.virtualKeyboard.mouse_move(startX, startY)
