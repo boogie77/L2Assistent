@@ -14,5 +14,5 @@ class QuestChecker(Character):
         self.pressOkTeamViewer()  # Нажатие ОК в TeamViewer
         while self.isRunning:
             self.commonActions()  # Выполнение общих действий
-            self.rebuffActions()  # Выполнение действий для бафа
+            self.healActions()  # Выполнение действий для самолечения
             self.questActions()  # Выполнение общих действий для квеста

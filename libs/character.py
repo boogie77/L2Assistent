@@ -64,9 +64,8 @@ class Character(object):
         self.chantOfVictoryInterval = 280  # Интервал Chant of Victory (в секундах)
         self.allowSendCommand = True  # Разрешение на отправку команды членам группы
         self.fishingLine = None  # Текущая длина полоски рыбалки
-        self.fishingPriorLine = None  # Предыдущая длина полоски рыбалки
-        self.fishingLineInterval = 0.7  # Интервал обновления информации по длине полоски
-        self.lastFishingLineTime = None  # Время последней проверки полоски рыбалки
+        self.fishingLineHist = []  # История изменения полосы рыбалки
+        self.maxFishingLineHistLength = 5  # Максимальная длина истории изиенения полосы рыбалки
 
     def printLog(self, text):
         """Запись лога в консоль"""
@@ -129,12 +128,9 @@ class Character(object):
 
     def fishingActions(self):
         """Общие действия для рыбалки"""
-        # Сбор информации и вывод лога
-        self.screen.refreshPrintScreen()
-        self.getCharacterSpecifications()
-        self.getTargetSpecifications()
         self.screen.refreshPrintScreen()
         self.getFishingLine()
+        self.saveFishingLineHist()
         self.mainFishing()
         if self.debugMode:
             cv2.imshow('L2 Assistent Debug', self.screen.image)
@@ -531,26 +527,31 @@ class Character(object):
 
     def getFishingLine(self):
         """Получить информацию о полоске рыбалки"""
+        cached = self.fishingLine is not None and self.fishingLine > 0
         areas = self.screen.findImageOnScreen(template='images/fishing_panel.png', threshold=0.75, result_count=1,
-                                              cache=False)
+                                              cache=cached)
         if len(areas) > 0:
             area = areas[0]
-            x1 = area['x1']
-            x2 = area['x2']
-            y1 = area['y1']
-            y2 = area['y2'] + 270
+            x1 = area['x1'] + 20
+            x2 = area['x2'] - 20
+            y1 = area['y1'] + 251
+            y2 = area['y2'] + 232
             cropped = self.screen.image[y1:y2, x1:x2]
             if self.debugMode:
                 cv2.rectangle(self.screen.image, (x1, y1), (x2, y2), (0, 0, 255), 2)
-            # line = self.screen.getContourColor(cropped, np.array([157, 105, 0], dtype="uint8"),
-            #                                    np.array([242, 205, 130], dtype="uint8"))
             line = self.screen.getContourColor(cropped, np.array([157, 105, 0], dtype="uint8"),
                                                np.array([210, 165, 5], dtype="uint8"))
             self.fishingLine = line
         else:
             self.fishingLine = None
-            self.fishingPriorLine = None
-            self.lastFishingLineTime = None
+
+    def saveFishingLineHist(self):
+        """Сохранение истории изменения полосы рыбалки"""
+        if self.fishingLine is not None and self.fishingLine > 0:
+            index = len(self.fishingLineHist)
+            self.fishingLineHist.insert(index, self.fishingLine)
+            if index >= self.maxFishingLineHistLength:
+                self.fishingLineHist.pop(0)
 
     def getNextTarget(self):
         """Получение ближайшей цели (Нажатие макроса /nexttarget)"""
@@ -582,39 +583,36 @@ class Character(object):
         """Главное тело логики рыбалки. Нажатие клавиш для фишинга"""
         # Алгоритм для процесса рыбалки
         if self.fishingLine is not None and self.fishingLine > 0:
-            # Получим значение шкалы рыбалки 3 секунды ранее:
-            if self.fishingPriorLine is None:
-                self.fishingPriorLine = self.fishingLine
-                self.lastFishingLineTime = time.time()
+            length = len(self.fishingLineHist)
+            if length == 0:
                 self.printLog("Старт рыбалки...")
-
-            if (time.time() - self.lastFishingLineTime) >= self.fishingLineInterval:
-                # Если истек интервал проверки шкалы рыбалки
-                if self.fishingLine > self.fishingPriorLine:
+            elif length == self.maxFishingLineHistLength:
+                print(self.fishingLineHist, self.fishingLine)
+                if self.fishingLineHist[0] > self.fishingLineHist[-1]:
+                    return
+                elif self.fishingLineHist[-1] > self.fishingLineHist[0]:
                     self.pressReeling()
-                elif self.fishingLine == self.fishingPriorLine:
+                    self.fishingLineHist.clear()
+                elif self.fishingLineHist[0] == self.fishingLineHist[-1]:
                     self.pressPumping()
+                    self.fishingLineHist.clear()
+            else:
+                time.sleep(0.1)
 
-                # Запомним текущее состояние шкалы рыбалки
-                self.fishingPriorLine = self.fishingLine
-                self.lastFishingLineTime = time.time()
-
+        # Закидывание удочки
         if self.fishingLine is None:
             if self.hasTarget is None or not self.hasTarget:
-                # Поиск цели, если цель обнаружена
-                self.getNextTarget()
-                # Если цели всё равно нет, то продолжаем рыбачить
-                if self.hasTarget is None or not self.hasTarget:
-                    self.virtualKeyboard.F8.press()
-                    self.virtualKeyboard.F7.press()
-                    time.sleep(1)
-                    self.virtualKeyboard.F10.press()
-                    time.sleep(3)
-            elif self.hasTarget is not None and self.hasTarget:
-                # Если есть цель, то надеваем оружие и начинаем атаковать
-                self.virtualKeyboard.F7.press()
-                self.virtualKeyboard.F8.press()
-                self.attackActions()
+                self.pressFishing()
+                time.sleep(3)
+
+    def pressFishing(self):
+        """Заикнуть удочку на рыбалку"""
+        self.printLog("Использование макроса Закидывания Удочки")
+        if self.useKeyboard:
+            self.virtualKeyboard.F5.press()
+        else:
+            self._findAndClickImageTemplate_(template='images/fishing.png', threshold=0.8, image_count=1,
+                                             cache=True)
 
     def pressReeling(self):
         """Натиягивание лезки"""

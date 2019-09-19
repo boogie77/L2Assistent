@@ -12,4 +12,3 @@ class Fisher(Character):
         self.pressOkTeamViewer()  # Нажатие ОК в TeamViewer
         while self.isRunning:
             self.fishingActions()  # Действия для рыбалки
-            self.exitIfDead()  # Выход из программы, если персонаж мерт
