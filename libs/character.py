@@ -587,17 +587,17 @@ class Character(object):
             if length == 0:
                 self.printLog("Старт рыбалки...")
             elif length == self.maxFishingLineHistLength:
-                print(self.fishingLineHist, self.fishingLine)
+                print(self.fishingLineHist)
                 if self.fishingLineHist[0] > self.fishingLineHist[-1]:
                     return
-                elif self.fishingLineHist[-1] > self.fishingLineHist[0]:
+                elif self.fishingLineHist[-1] > self.fishingLineHist[0] and (self.fishingLineHist[-1] - self.fishingLineHist[0]) < 10:
                     self.pressReeling()
                     self.fishingLineHist.clear()
                 elif self.fishingLineHist[0] == self.fishingLineHist[-1]:
                     self.pressPumping()
                     self.fishingLineHist.clear()
-            else:
-                time.sleep(0.1)
+
+            time.sleep(0.15)
 
         # Закидывание удочки
         if self.fishingLine is None:
