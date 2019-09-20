@@ -65,7 +65,7 @@ class Character(object):
         self.allowSendCommand = True  # Разрешение на отправку команды членам группы
         self.fishingLine = None  # Текущая длина полоски рыбалки
         self.fishingLineHist = []  # История изменения полосы рыбалки
-        self.maxFishingLineHistLength = 5  # Максимальная длина истории изиенения полосы рыбалки
+        self.maxFishingLineHistLength = 6  # Максимальная длина истории изиенения полосы рыбалки
 
     def printLog(self, text):
         """Запись лога в консоль"""
@@ -588,16 +588,17 @@ class Character(object):
                 self.printLog("Старт рыбалки...")
             elif length == self.maxFishingLineHistLength:
                 print(self.fishingLineHist)
+                dif = (self.fishingLineHist[-1] - self.fishingLineHist[0])
                 if self.fishingLineHist[0] > self.fishingLineHist[-1]:
                     return
-                elif self.fishingLineHist[-1] > self.fishingLineHist[0] and (self.fishingLineHist[-1] - self.fishingLineHist[0]) < 10:
+                elif self.fishingLineHist[-1] > self.fishingLineHist[0] and 10 > dif > 1:
                     self.pressReeling()
                     self.fishingLineHist.clear()
                 elif self.fishingLineHist[0] == self.fishingLineHist[-1]:
                     self.pressPumping()
                     self.fishingLineHist.clear()
 
-            time.sleep(0.15)
+            time.sleep(0.12)
 
         # Закидывание удочки
         if self.fishingLine is None:
