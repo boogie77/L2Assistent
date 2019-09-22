@@ -132,6 +132,12 @@ class Character(object):
         self.getFishingLine()
         self.saveFishingLineHist()
         self.mainFishing()
+        if self.fishingLine is None:
+            self.checkCharacterDead()
+        if self.isDead:
+            self.clickInCity()
+            self.dispose()
+
         if self.debugMode:
             cv2.imshow('L2 Assistent Debug', self.screen.image)
             cv2.waitKey(1)
@@ -463,6 +469,12 @@ class Character(object):
         areas = self.screen.findImageOnScreen(template='images/in_city.png', threshold=0.8, result_count=1, cache=False)
         self.isDead = len(areas) > 0
 
+    def clickInCity(self):
+        """Клик по кнопке "В город", если персонаж умер"""
+        time.sleep(2)
+        self._findAndClickImageTemplate_(template='images/in_city.png', threshold=0.8, image_count=1,
+                                         cache=False)
+
     def checkLastAttackTime(self):
         """Проверка на последнее время атаки. Если персонаж не атакует цели длительное время, то программа закроется"""
         now = time.time()
@@ -594,9 +606,11 @@ class Character(object):
                 elif self.fishingLineHist[-1] > self.fishingLineHist[0] and 10 > dif > 1:
                     self.pressReeling()
                     self.fishingLineHist.clear()
+                    self.checkCharacterDead()
                 elif self.fishingLineHist[0] == self.fishingLineHist[-1]:
                     self.pressPumping()
                     self.fishingLineHist.clear()
+                    self.checkCharacterDead()
 
             time.sleep(0.12)
 
