@@ -132,7 +132,7 @@ class Character(object):
         self.getFishingLine()
         self.saveFishingLineHist()
         self.mainFishing()
-        if self.fishingLine is None:
+        if self.fishingLine is None or self.fishingLine == 0:
             self.checkCharacterDead()
         if self.isDead:
             self.clickInCity()
@@ -466,12 +466,13 @@ class Character(object):
 
     def checkCharacterDead(self):
         """Проверка на смерть персонажа"""
+        self.printLog("Проверка на смерть персонажа.")
         areas = self.screen.findImageOnScreen(template='images/in_city.png', threshold=0.8, result_count=1, cache=False)
         self.isDead = len(areas) > 0
 
     def clickInCity(self):
         """Клик по кнопке "В город", если персонаж умер"""
-        time.sleep(2)
+        self.printLog("Клик по кнопке 'В город'")
         self._findAndClickImageTemplate_(template='images/in_city.png', threshold=0.8, image_count=1,
                                          cache=False)
 
