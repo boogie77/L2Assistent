@@ -63,9 +63,14 @@ class Character(object):
         self.lastChantOfVictoryTime = None  # Дата последнего Chant of Victory
         self.chantOfVictoryInterval = 280  # Интервал Chant of Victory (в секундах)
         self.allowSendCommand = True  # Разрешение на отправку команды членам группы
+        self.startFishingTime = None  # Время начала рыбалки
         self.fishingLine = None  # Текущая длина полоски рыбалки
-        self.fishingLineHist = []  # История изменения полосы рыбалки
-        self.maxFishingLineHistLength = 6  # Максимальная длина истории изиенения полосы рыбалки
+        self.maxFishingLineHistLength = 6  # Максимальная длина истории изменения полосы рыбалки
+        self.fishingLineHist = np.full(self.maxFishingLineHistLength, 0)  # История изменения полосы рыбалки
+        self.lowerBlue = np.array([78, 158, 124])  # Шаблон синего (нижний уровень)
+        self.upperBlue = np.array([138, 255, 255])  # Шаблон синего (верхний уровень)
+        self.allowPumping = True  # Разрешение на использование способности Pumping
+        self.allowReeling = True  # Разрешение на использование способности Reeling
 
     def printLog(self, text):
         """Запись лога в консоль"""
@@ -130,17 +135,18 @@ class Character(object):
         """Общие действия для рыбалки"""
         self.screen.refreshPrintScreen()
         self.getFishingLine()
-        self.saveFishingLineHist()
+        self.saveFishingHist()
         self.mainFishing()
-        if self.fishingLine is None or self.fishingLine == 0:
+        if self.fishingLine is None:
             self.checkCharacterDead()
         if self.isDead:
             self.clickInCity()
             self.dispose()
-
-        if self.debugMode:
-            cv2.imshow('L2 Assistent Debug', self.screen.image)
-            cv2.waitKey(1)
+        if self.fishingLine is None:
+            self.pressFishing()
+            self.startFishingTime = time.time()
+            self.fishingLineHist.fill(0)
+            time.sleep(10)
 
     def questActions(self):
         """Общие действия для квеста"""
@@ -240,11 +246,11 @@ class Character(object):
 
         self.needRebuff = (self.lastBuffTime is None) or (now - self.lastBuffTime) >= self.buffInterval
         self.needRegularBuff = (self.lastRegularBuffTime is None) or (
-                    now - self.lastRegularBuffTime) >= self.regularBuffInterval
+                now - self.lastRegularBuffTime) >= self.regularBuffInterval
         self.needDanceSong = (self.lastDanceSongTime is None) or (
-                    now - self.lastDanceSongTime) >= self.danceSongInterval
+                now - self.lastDanceSongTime) >= self.danceSongInterval
         self.needChantOfVictory = (self.lastChantOfVictoryTime is None) or (
-                    now - self.lastChantOfVictoryTime) >= self.chantOfVictoryInterval
+                now - self.lastChantOfVictoryTime) >= self.chantOfVictoryInterval
 
         if self.needRebuff:
             self.printLog("Требуется ребаф.")
@@ -305,7 +311,7 @@ class Character(object):
                     if self.everyTenSecondsTargetHP <= self.targetHP:
                         self.printLog("Цель не атакуется уже %s сек." % total_attack_time)
                         self.printLog("10 Секунд назад было %s ХП, а сейчас: %s." % (
-                        str(self.everyTenSecondsTargetHP), str(self.targetHP)))
+                            str(self.everyTenSecondsTargetHP), str(self.targetHP)))
                         self.everyTenSecondsTry += 1
                         # Если цель не атакуется 30 секунд подряд
                         if self.everyTenSecondsTry >= 3:
@@ -541,30 +547,24 @@ class Character(object):
     def getFishingLine(self):
         """Получить информацию о полоске рыбалки"""
         cached = self.fishingLine is not None and self.fishingLine > 0
-        areas = self.screen.findImageOnScreen(template='images/fishing_panel.png', threshold=0.75, result_count=1,
+        areas = self.screen.findImageOnScreen(template='images/fishing_panel.png', threshold=0.8, result_count=1,
                                               cache=cached)
         if len(areas) > 0:
             area = areas[0]
             x1 = area['x1'] + 20
             x2 = area['x2'] - 20
-            y1 = area['y1'] + 251
-            y2 = area['y2'] + 232
+            y1 = area['y1'] + 245
+            y2 = area['y2'] + 235
             cropped = self.screen.image[y1:y2, x1:x2]
-            if self.debugMode:
-                cv2.rectangle(self.screen.image, (x1, y1), (x2, y2), (0, 0, 255), 2)
-            line = self.screen.getContourColor(cropped, np.array([157, 105, 0], dtype="uint8"),
-                                               np.array([210, 165, 5], dtype="uint8"))
-            self.fishingLine = line
+            self.fishingLine = self.screen.getContourColorByMask(cropped, self.lowerBlue, self.upperBlue)
         else:
             self.fishingLine = None
 
-    def saveFishingLineHist(self):
-        """Сохранение истории изменения полосы рыбалки"""
+    def saveFishingHist(self):
+        """Сохранение истории анализа шкалы рыбалки"""
         if self.fishingLine is not None and self.fishingLine > 0:
-            index = len(self.fishingLineHist)
-            self.fishingLineHist.insert(index, self.fishingLine)
-            if index >= self.maxFishingLineHistLength:
-                self.fishingLineHist.pop(0)
+            self.fishingLineHist = np.roll(self.fishingLineHist, 1)
+            self.fishingLineHist[0] = self.fishingLine
 
     def getNextTarget(self):
         """Получение ближайшей цели (Нажатие макроса /nexttarget)"""
@@ -594,32 +594,18 @@ class Character(object):
 
     def mainFishing(self):
         """Главное тело логики рыбалки. Нажатие клавиш для фишинга"""
-        # Алгоритм для процесса рыбалки
-        if self.fishingLine is not None and self.fishingLine > 0:
-            length = len(self.fishingLineHist)
-            if length == 0:
-                self.printLog("Старт рыбалки...")
-            elif length == self.maxFishingLineHistLength:
-                print(self.fishingLineHist)
-                dif = (self.fishingLineHist[-1] - self.fishingLineHist[0])
-                if self.fishingLineHist[0] > self.fishingLineHist[-1]:
-                    return
-                elif self.fishingLineHist[-1] > self.fishingLineHist[0] and 10 > dif > 1:
-                    self.pressReeling()
-                    self.fishingLineHist.clear()
-                    self.checkCharacterDead()
-                elif self.fishingLineHist[0] == self.fishingLineHist[-1]:
+        if self.fishingLineHist[-1] > 0:
+            if self.fishingLineHist[0] == self.fishingLineHist[-1]:
+                if self.allowPumping:
                     self.pressPumping()
-                    self.fishingLineHist.clear()
-                    self.checkCharacterDead()
+                    self.fishingLineHist.fill(0)  # Очистка истории изменения шкалы рыбалки
 
-            time.sleep(0.12)
+            elif 10 > (self.fishingLineHist[0] - self.fishingLineHist[-1]) > 1:
+                if self.allowReeling:
+                    self.pressReeling()
+                    self.fishingLineHist.fill(0)  # Очистка истории изменения шкалы рыбалки
 
-        # Закидывание удочки
-        if self.fishingLine is None:
-            if self.hasTarget is None or not self.hasTarget:
-                self.pressFishing()
-                time.sleep(3)
+        time.sleep(0.1)
 
     def pressFishing(self):
         """Заикнуть удочку на рыбалку"""
@@ -632,21 +618,37 @@ class Character(object):
 
     def pressReeling(self):
         """Натиягивание лезки"""
-        self.printLog("Использование макроса Натиягивания лезки")
+        self.printLog("Использование макроса Натиягивания лезки (Reeling)")
         if self.useKeyboard:
             self.virtualKeyboard.F3.press()
         else:
             self._findAndClickImageTemplate_(template='images/reeling.png', threshold=0.8, image_count=1,
                                              cache=True)
+        thread_disable = threading.Thread(target=self._disableReeling_)
+        thread_disable.start()
 
     def pressPumping(self):
         """Подсечение рыбы"""
-        self.printLog("Использование макроса Подсечения рыбы")
+        self.printLog("Использование макроса Подсечения рыбы (Pumping)")
         if self.useKeyboard:
             self.virtualKeyboard.F2.press()
         else:
             self._findAndClickImageTemplate_(template='images/pumping.png', threshold=0.8, image_count=1,
                                              cache=True)
+        thread_disable = threading.Thread(target=self._disablePumping_)
+        thread_disable.start()
+
+    def _disablePumping_(self):
+        """Блокировка способности Pumping на 2 сек"""
+        self.allowPumping = False
+        time.sleep(2)
+        self.allowPumping = True
+
+    def _disableReeling_(self):
+        """Блокировка способности Pumping на 2 сек"""
+        self.allowReeling = False
+        time.sleep(2)
+        self.allowReeling = True
 
     def pickUpDrop(self, count=8):
         """Поднятие дропа (Нажатие клавиши F4),

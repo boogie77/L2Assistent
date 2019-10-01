@@ -1,5 +1,5 @@
 import cv2
-import pyautogui
+import d3dshot
 import numpy as np
 
 
@@ -8,6 +8,7 @@ class ScreenTools(object):
 
     def __init__(self):
         self.cache = {}  # Внутренний кэш
+        self.d3d = d3dshot.create(capture_output="numpy")  # Инициализация функции захвата экрана
         self.image, self.image_grey = self.getPrintScreen()  # Сохранение скриншота экрана
 
     def getAttribute(self, attribute_key):
@@ -24,7 +25,7 @@ class ScreenTools(object):
 
     def getPrintScreen(self):
         """Делает скриншот экрана, возвращает в цвете и в ЧБ"""
-        image = pyautogui.screenshot()
+        image = self.d3d.screenshot()
         image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         image_grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         return image, image_grey
@@ -108,6 +109,15 @@ class ScreenTools(object):
             result = 0
 
         return result
+
+    def getContourColorByMask(self, img, lower, upper):
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(hsv, lower, upper)
+        cnts, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        if len(cnts) == 0:
+            return 0
+        else:
+            return np.amax(cnts[0], axis=0)[0][0]
 
     # Получить процентное соотношение
     def getPercents(self, a, b):
