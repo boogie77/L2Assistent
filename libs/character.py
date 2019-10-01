@@ -65,7 +65,7 @@ class Character(object):
         self.allowSendCommand = True  # Разрешение на отправку команды членам группы
         self.startFishingTime = None  # Время начала рыбалки
         self.fishingLine = None  # Текущая длина полоски рыбалки
-        self.maxFishingLineHistLength = 6  # Максимальная длина истории изменения полосы рыбалки
+        self.maxFishingLineHistLength = 30  # Максимальная длина истории изменения полосы рыбалки
         self.fishingLineHist = np.full(self.maxFishingLineHistLength, 0)  # История изменения полосы рыбалки
         self.lowerBlue = np.array([78, 158, 124])  # Шаблон синего (нижний уровень)
         self.upperBlue = np.array([138, 255, 255])  # Шаблон синего (верхний уровень)
@@ -598,14 +598,10 @@ class Character(object):
             if self.fishingLineHist[0] == self.fishingLineHist[-1]:
                 if self.allowPumping:
                     self.pressPumping()
-                    self.fishingLineHist.fill(0)  # Очистка истории изменения шкалы рыбалки
 
-            elif 10 > (self.fishingLineHist[0] - self.fishingLineHist[-1]) > 1:
+            elif 10 > (self.fishingLineHist[0] - self.fishingLineHist[1]) > 1:
                 if self.allowReeling:
                     self.pressReeling()
-                    self.fishingLineHist.fill(0)  # Очистка истории изменения шкалы рыбалки
-
-        time.sleep(0.1)
 
     def pressFishing(self):
         """Заикнуть удочку на рыбалку"""
