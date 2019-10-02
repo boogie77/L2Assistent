@@ -65,7 +65,7 @@ class Character(object):
         self.allowSendCommand = True  # Разрешение на отправку команды членам группы
         self.startFishingTime = None  # Время начала рыбалки
         self.fishingLine = None  # Текущая длина полоски рыбалки
-        self.maxFishingLineHistLength = 30  # Максимальная длина истории изменения полосы рыбалки
+        self.maxFishingLineHistLength = 15  # Максимальная длина истории изменения полосы рыбалки
         self.fishingLineHist = np.full(self.maxFishingLineHistLength, 0)  # История изменения полосы рыбалки
         self.lowerBlue = np.array([78, 158, 124])  # Шаблон синего (нижний уровень)
         self.upperBlue = np.array([138, 255, 255])  # Шаблон синего (верхний уровень)
@@ -146,7 +146,7 @@ class Character(object):
             self.pressFishing()
             self.startFishingTime = time.time()
             self.fishingLineHist.fill(0)
-            time.sleep(10)
+            time.sleep(5)
 
     def questActions(self):
         """Общие действия для квеста"""

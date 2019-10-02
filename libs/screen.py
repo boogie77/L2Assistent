@@ -1,5 +1,6 @@
 import cv2
-import d3dshot
+# import d3dshot
+import pyautogui
 import numpy as np
 
 
@@ -8,7 +9,7 @@ class ScreenTools(object):
 
     def __init__(self):
         self.cache = {}  # Внутренний кэш
-        self.d3d = d3dshot.create(capture_output="numpy")  # Инициализация функции захвата экрана
+        # self.d3d = d3dshot.create(capture_output="numpy")  # Инициализация функции захвата экрана
         self.image, self.image_grey = self.getPrintScreen()  # Сохранение скриншота экрана
 
     def getAttribute(self, attribute_key):
@@ -25,7 +26,8 @@ class ScreenTools(object):
 
     def getPrintScreen(self):
         """Делает скриншот экрана, возвращает в цвете и в ЧБ"""
-        image = self.d3d.screenshot()
+        # image = self.d3d.screenshot()  # Скриншот с помощью D3D
+        image = pyautogui.screenshot()  # Скриншот с помощью pyautogui
         image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         image_grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         return image, image_grey
@@ -126,4 +128,3 @@ class ScreenTools(object):
         except Exception as e:
             result = None
         return result
-
