@@ -195,7 +195,7 @@ class AutoHotPy(object):
         self.F10=Key(self,0x44,"F10")
         self.NUMLOCK=Key(self,0x45,"NUMLOCK")
         self.SCROLLLOCK=Key(self,0x46,"SCROLLLOCK")
-        self.HOME=Key(self,0x47,"HOME")
+        self.HOME=Key(self,0x47,"HOME", InterceptionKeyState.INTERCEPTION_KEY_E0)
         self.UP_ARROW=Key(self,0x48,"UP_ARROW", InterceptionKeyState.INTERCEPTION_KEY_E0)
         self.PAGE_UP=Key(self,0x49,"PAGE_UP", InterceptionKeyState.INTERCEPTION_KEY_E0)
         self.DASH_NUM=Key(self,0x4A,"DASH_NUM")

@@ -45,12 +45,15 @@ class Character(object):
         self.petHP = None
         # Игровые характеристики
         self.isPickUpDrop = False  # Признак сбора дропа
+        self.allowFullHeal = False  # Признак возможности полного лечения
+        self.allowRegularBuff = True  # Признак возможности регулярного бафа (раз в полторы минуты например)
         self.lastHealTime = None  # Время последнего лечения
         self.lastPartyHealTime = None  # Время последнего лечения от членов группы
         self.lastAttackTime = None  # Время последнего вызова атаки
         self.lastAssistTime = None  # Время последнего вызова ассиста
         self.maxNoAttackInterval = 600  # Выход из программы, если персонаж не атакует цели указаное кол-во секунд
         self.needRebuff = False  # Признак необходимости бафнуться
+        self.reBuffType = "hunter"  # Тип бафа ("hunter", "self")
         self.lastBuffTime = None  # Дата последнего ребафа
         self.buffInterval = 600  # Интервал для основного бафа (в секундах)
         self.needRegularBuff = False  # Признак необходимости применить регулярный бафф
@@ -170,7 +173,6 @@ class Character(object):
         """Действия для режима атаки"""
         if not self.attackMode:
             return
-
         if self.hasTarget:
             # Атаковать, если у цели есть шкала HP
             if self.targetHP is not None and self.targetHP > 0 or self.targetNoHP is not None and self.targetNoHP > 0:
@@ -202,7 +204,7 @@ class Character(object):
                 if self.lastPartyHealTime is None or int(now - self.lastPartyHealTime) >= 10:
                     self.callHeal()
 
-            if 1 <= self.HP <= 25:
+            if self.allowFullHeal and (1 <= self.HP <= 25):
                 # Полное лечение если здоровье на критической отметке
                 self.selfFullHeal()
 
@@ -231,7 +233,7 @@ class Character(object):
         # Не искать цель, если требуется ребаф
         elif self.needRebuff:
             return False
-        elif self.needRegularBuff:
+        elif self.allowRegularBuff and self.needRegularBuff:
             return False
         else:
             return True
@@ -258,10 +260,8 @@ class Character(object):
             if not self.hasTarget and attack_interval >= 5:
                 self.reBuff()
                 self.callBuff()
-                # Подождем 5 секунд после ребафа
-                time.sleep(5)
                 return
-        if self.needRegularBuff:
+        if self.allowRegularBuff and self.needRegularBuff:
             self.printLog("Требуется регулярный бафф.")
             # Запустим регулярный баф, если нет цели
             if not self.hasTarget:
@@ -360,16 +360,12 @@ class Character(object):
     def reBuff(self):
         """Запуск ребафа"""
         self.printLog("Активация ребафа.")
-        if self.useKeyboard:
-            self.virtualKeyboard.LEFT_ALT.down()
-            time.sleep(0.1)
-            self.virtualKeyboard.N9.press()
-            time.sleep(0.02)
-            self.virtualKeyboard.LEFT_ALT.up()
-            time.sleep(0.1)
+        if self.reBuffType == 'hunter':
+            self.rebuffHunter()
         else:
-            self._findAndClickImageTemplate_(template='images/buff_button.png', threshold=0.8, image_count=1,
-                                             cache=True)
+            self.rebuffSelf()
+            # Подождем 8 секунд после ребафа
+            time.sleep(8)
 
     def regularBuff(self):
         """Запуск регулярного бафа"""
@@ -406,6 +402,21 @@ class Character(object):
             time.sleep(0.1)
         else:
             self._findAndClickImageTemplate_(template='images/DanceSong.png', threshold=0.8, image_count=1, cache=True)
+
+    def rebuffSelf(self):
+        """"Ребафф на селфах"""
+        self.printLog("Активация ребафа.")
+        if self.useKeyboard:
+            self.virtualKeyboard.LEFT_ALT.down()
+            time.sleep(0.1)
+            self.virtualKeyboard.N9.press()
+            time.sleep(0.02)
+            self.virtualKeyboard.LEFT_ALT.up()
+            time.sleep(0.1)
+        else:
+            self._findAndClickImageTemplate_(template='images/buff_button.png', threshold=0.8, image_count=1,
+                                             cache=True)
+
 
     def rebuffHunter(self):
         """Ребафф На сервере Hunter"""
@@ -568,7 +579,6 @@ class Character(object):
 
     def getNextTarget(self):
         """Получение ближайшей цели (Нажатие макроса /nexttarget)"""
-
         self.printLog("Поиск ближейшей цели")
         if self.useKeyboard:
             self.virtualKeyboard.F11.press()
