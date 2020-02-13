@@ -256,8 +256,8 @@ class Character(object):
 
         if self.needRebuff:
             self.printLog("Требуется ребаф.")
-            # Запустим ребаф, если с момента последней атаки прошло более 5 секунд
-            if not self.hasTarget and attack_interval >= 5:
+            # Запустим ребаф, если с момента последней атаки прошло более 11 секунд
+            if not self.hasTarget and attack_interval >= 11:
                 self.reBuff()
                 self.callBuff()
                 return
