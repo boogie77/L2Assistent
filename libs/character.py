@@ -53,7 +53,7 @@ class Character(object):
         self.lastAssistTime = None  # Время последнего вызова ассиста
         self.maxNoAttackInterval = 600  # Выход из программы, если персонаж не атакует цели указаное кол-во секунд
         self.needRebuff = False  # Признак необходимости бафнуться
-        self.reBuffType = "hunter"  # Тип бафа ("hunter", "self")
+        self.reBuffType = "self"  # Тип бафа ("hunter", "self")
         self.lastBuffTime = None  # Дата последнего ребафа
         self.buffInterval = 600  # Интервал для основного бафа (в секундах)
         self.needRegularBuff = False  # Признак необходимости применить регулярный бафф
@@ -405,7 +405,6 @@ class Character(object):
 
     def rebuffSelf(self):
         """"Ребафф на селфах"""
-        self.printLog("Активация ребафа.")
         if self.useKeyboard:
             self.virtualKeyboard.LEFT_ALT.down()
             time.sleep(0.1)
