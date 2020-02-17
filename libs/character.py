@@ -46,12 +46,15 @@ class Character(object):
         # Игровые характеристики
         self.isPickUpDrop = False  # Признак сбора дропа
         self.allowFullHeal = False  # Признак возможности полного лечения
-        self.allowRegularBuff = True  # Признак возможности регулярного бафа (раз в полторы минуты например)
         self.lastHealTime = None  # Время последнего лечения
         self.lastPartyHealTime = None  # Время последнего лечения от членов группы
+        self.allowAttack = True  # Признак возможности атаковать цель
         self.lastAttackTime = None  # Время последнего вызова атаки
         self.lastAssistTime = None  # Время последнего вызова ассиста
         self.maxNoAttackInterval = 600  # Выход из программы, если персонаж не атакует цели указаное кол-во секунд
+        # BUFF
+        self.allowRebuff = True  # Признак возможности бафаться
+        self.allowRegularBuff = True  # Признак возможности регулярного бафа (раз в полторы минуты например)
         self.needRebuff = False  # Признак необходимости бафнуться
         self.reBuffType = "self"  # Тип бафа ("hunter", "self")
         self.lastBuffTime = None  # Дата последнего ребафа
@@ -65,7 +68,9 @@ class Character(object):
         self.needChantOfVictory = False  # Признак необходимости использовать Chant of Victory
         self.lastChantOfVictoryTime = None  # Дата последнего Chant of Victory
         self.chantOfVictoryInterval = 280  # Интервал Chant of Victory (в секундах)
+        # Party
         self.allowSendCommand = True  # Разрешение на отправку команды членам группы
+        # Fishing
         self.startFishingTime = None  # Время начала рыбалки
         self.fishingLine = None  # Текущая длина полоски рыбалки
         self.maxFishingLineHistLength = 15  # Максимальная длина истории изменения полосы рыбалки
@@ -158,7 +163,7 @@ class Character(object):
         self.virtualKeyboard.ESC.press()
         time.sleep(0.5)
         self.findQuestTarget()
-        time.sleep(5)
+        time.sleep(1)
         self.screen.refreshPrintScreen()
         self.getTargetSpecifications()
         if self.hasTarget:
@@ -176,8 +181,11 @@ class Character(object):
         if self.hasTarget:
             # Атаковать, если у цели есть шкала HP
             if self.targetHP is not None and self.targetHP > 0 or self.targetNoHP is not None and self.targetNoHP > 0:
-                self.attackTarget()
-                self.callAssist()
+                # Атаковать, если разрешена атака программно
+                if self.allowAttack:
+                    self.attackTarget()
+                    self.callAssist()
+                    self.disableAttack(seconds=1.5)  # запретим вызов атаки на указанное время
             # Закрыть цель, если это Игрок/NPC
             else:
                 self.closeTarget()
@@ -240,6 +248,8 @@ class Character(object):
 
     def rebuffActions(self):
         """Действия для Бафа"""
+        if not self.allowRebuff:
+            return
         now = time.time()
         if self.lastAttackTime is not None:
             attack_interval = now - self.lastAttackTime
@@ -291,6 +301,17 @@ class Character(object):
                                              cache=True)
 
         self.checkSuccessAttack()  # Проверка на успешную атаку цели
+
+    def disableAttack(self, seconds=1.5):
+        """Блокировка атаки на указанное время в секундах"""
+        thread_disable = threading.Thread(target=self._disableAttack_)
+        thread_disable.start()
+
+    def _disableAttack_(self, seconds=1):
+        """Блокировка атаки на указанное количество секунд"""
+        self.allowAttack = False
+        time.sleep(seconds)
+        self.allowAttack = True
 
     def checkSuccessAttack(self):
         """Проверка на успешную атаку цели (на случай, если персонаж залип и не атакует цель)"""
@@ -365,7 +386,9 @@ class Character(object):
         else:
             self.rebuffSelf()
             # Подождем 8 секунд после ребафа
-            time.sleep(8)
+            time.sleep(10)
+            self.virtualKeyboard.ESC.press()
+            time.sleep(0.1)
 
     def regularBuff(self):
         """Запуск регулярного бафа"""
@@ -415,7 +438,6 @@ class Character(object):
         else:
             self._findAndClickImageTemplate_(template='images/buff_button.png', threshold=0.8, image_count=1,
                                              cache=True)
-
 
     def rebuffHunter(self):
         """Ребафф На сервере Hunter"""
@@ -503,6 +525,8 @@ class Character(object):
         """Выход, если персонаж мертв"""
         if self.isDead:
             self.printLog("Персонаж мертв.")
+            time.sleep(3)
+            self.clickInCity()
             self.dispose()
 
     def getCharacterSpecifications(self):
@@ -683,6 +707,7 @@ class Character(object):
 
     def closeTarget(self):
         """Сброс цели (нажатие клавиши ESC)"""
+        self.lastAttackTime = None
         self.virtualKeyboard.ESC.press()
         time.sleep(0.1)
         self.hasTarget = None
@@ -754,6 +779,7 @@ class Character(object):
 
     def pressOkTeamViewer(self):
         """Нажать OK в TeamViewer"""
+        self.screen.refreshPrintScreen()
         self._findAndClickImageTemplate_(template='images/teamviewer_ok.png', threshold=0.8, image_count=1,
                                          cache=False)
 
@@ -801,17 +827,43 @@ class Character(object):
         # Запоминаем координаты курсора
         startX, startY = self.virtualKeyboard.getMousePosition()
         # Поиск изображения на экране
-        areas = self.screen.findImageOnScreen(template='images/dialog_line.png', threshold=0.85, result_count=1,
+        areas = self.screen.findImageOnScreen(template='images/dialogue_panel.png', threshold=0.85, result_count=1,
                                               cache=False)
-        for area in areas:
-            x = area['x_center'] + 10
-            y = area['y_center'] - 10
-            self.virtualKeyboard.mouse_move(x, y)
+        if len(areas) <= 0:
+            areas = self.screen.findImageOnScreen(template='images/dialogue_panel_talk.png', threshold=0.85, result_count=1,
+                                                  cache=False)
+        if len(areas) > 0:
+            area = areas[0]
+            x1 = area['x1']
+            x2 = area['x2']
+            y1 = area['y1']
+            y2 = area['y2']+370
+            cropped = self.screen.image[y1:y2, x1:x2]
+            # Поиск синих элементов
+            blue_lower = np.array([100, 150, 0], np.uint8)
+            blue_upper = np.array([140, 255, 255], np.uint8)
+            cropped = cv2.cvtColor(cropped, cv2.COLOR_BGR2HSV)
+            blue = cv2.inRange(cropped, blue_lower, blue_upper)
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 5))
+            closed = cv2.morphologyEx(blue, cv2.MORPH_CLOSE, kernel)
+            closed = cv2.erode(closed, kernel, iterations=1)
+            closed = cv2.dilate(closed, kernel, iterations=1)
+            (coords, _) = cv2.findContours(closed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            if len(coords) == 0:
+                return
+            else:
+                cnt = coords[0]
+
+            (x, y), radius = cv2.minEnclosingCircle(cnt)
+            x_center = x + x1
+            y_center = y + y1
+
+            self.virtualKeyboard.mouse_move(x_center, y_center)
             time.sleep(0.1)
             self.virtualKeyboard.click_left_mouse()
             time.sleep(0.1)
-        # Возврат курсора на предыдущую координату
-        self.virtualKeyboard.mouse_move(startX, startY)
+            # Возврат курсора на предыдущую координату
+            self.virtualKeyboard.mouse_move(startX, startY)
 
     def pressLookInside(self):
         """Нажатие кнопки "Look Inside" (для квеста на саб-класс)"""
