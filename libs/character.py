@@ -173,6 +173,7 @@ class Character(object):
             for i in range(5):
                 self.pressDialogButton()
                 time.sleep(1)
+        time.sleep(3)
 
     def attackActions(self):
         """Действия для режима атаки"""
@@ -194,7 +195,8 @@ class Character(object):
         if self.hasTarget and self.targetHP == 0 and self.targetNoHP > 0:
             self.printLog("Цель мертва.")
             self.closeTarget()  # Сброс цели
-            self.pickUpDrop()  # Поднятие дропа
+            if not self.needRebuff:
+                self.pickUpDrop()  # Поднятие дропа
             self.callFollowMe()  # Подозвать всех членов группы к себе
 
     def healActions(self):
@@ -708,6 +710,7 @@ class Character(object):
     def closeTarget(self):
         """Сброс цели (нажатие клавиши ESC)"""
         self.lastAttackTime = None
+        self.allowAttack = True
         self.virtualKeyboard.ESC.press()
         time.sleep(0.1)
         self.hasTarget = None
