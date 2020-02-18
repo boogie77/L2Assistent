@@ -194,9 +194,8 @@ class Character(object):
         # Проверка на мертвую цель
         if self.hasTarget and self.targetHP == 0 and self.targetNoHP > 0:
             self.printLog("Цель мертва.")
-            self.closeTarget()  # Сброс цели
-            if not self.needRebuff:
-                self.pickUpDrop()  # Поднятие дропа
+            self.getNextTarget()  # Сброс цели
+            self.pickUpDrop()  # Поднятие дропа
             self.callFollowMe()  # Подозвать всех членов группы к себе
 
     def healActions(self):
@@ -431,18 +430,22 @@ class Character(object):
     def rebuffSelf(self):
         """"Ребафф на селфах"""
         if self.useKeyboard:
+            self.blockKeyboard = True
             self.virtualKeyboard.LEFT_ALT.down()
             time.sleep(0.1)
             self.virtualKeyboard.N9.press()
             time.sleep(0.02)
             self.virtualKeyboard.LEFT_ALT.up()
             time.sleep(0.1)
+            self.blockKeyboard = False
         else:
             self._findAndClickImageTemplate_(template='images/buff_button.png', threshold=0.8, image_count=1,
                                              cache=True)
 
     def rebuffHunter(self):
         """Ребафф На сервере Hunter"""
+        self.blockKeyboard = True
+        time.sleep(0.5)
         self.virtualKeyboard.ESC.press()
         time.sleep(0.5)
         self.virtualKeyboard.LEFT_ALT.down()
@@ -477,6 +480,7 @@ class Character(object):
         self._findAndClickImageTemplate_(template='images/buff_all.png', threshold=0.8, image_count=1)
         time.sleep(0.5)
         self.virtualKeyboard.ESC.press()
+        self.blockKeyboard = False
 
     def assist(self):
         """Вызов Ассиста"""
@@ -605,6 +609,7 @@ class Character(object):
     def getNextTarget(self):
         """Получение ближайшей цели (Нажатие макроса /nexttarget)"""
         self.printLog("Поиск ближейшей цели")
+        self.resetAttackInfo()
         if self.useKeyboard:
             self.virtualKeyboard.F11.press()
         else:
@@ -707,12 +712,9 @@ class Character(object):
         time.sleep(seconds)
         self.allowSendCommand = True
 
-    def closeTarget(self):
-        """Сброс цели (нажатие клавиши ESC)"""
-        self.lastAttackTime = None
+    def resetAttackInfo(self):
+        """Сброс информации об атаке"""
         self.allowAttack = True
-        self.virtualKeyboard.ESC.press()
-        time.sleep(0.1)
         self.hasTarget = None
         self.targetHP = None
         self.targetNoHP = None
@@ -721,6 +723,12 @@ class Character(object):
         self.everyTenSecondsTry = 0
         self.currentTenSeconds = 0
         self.lastAssistTime = None
+    
+    def closeTarget(self):
+        """Сброс цели (нажатие клавиши ESC)"""
+        self.virtualKeyboard.ESC.press()
+        time.sleep(0.1)
+        self.resetAttackInfo()
 
     def callAssist(self):
         """Вызов ассиста у членов группы"""
