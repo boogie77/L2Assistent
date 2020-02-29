@@ -111,7 +111,7 @@ class Character(object):
             self.commonActions()  # Выполнение общих действий
 
     def startRemoteServer(self):
-        """"Запуск сервера для удаленного управления персонажами"""
+        """Запуск сервера для удаленного управления персонажами"""
         self.server = TeamServer()  # Инициализация сервера
         self.registerVirtualKeys()  # Резерирование NUM1-NUM9 для удаленного управления персонажами
         self.server.startServer()  # Запуск сервера
@@ -267,8 +267,8 @@ class Character(object):
 
         if self.needRebuff:
             self.printLog("Требуется ребаф.")
-            # Запустим ребаф, если с момента последней атаки прошло более 11 секунд
-            if not self.hasTarget and attack_interval >= 11:
+            # Запустим ребаф, если с момента последней атаки прошло более 5 секунд
+            if not self.hasTarget and attack_interval >= 5:
                 self.reBuff()
                 self.callBuff()
                 return
@@ -428,7 +428,7 @@ class Character(object):
             self._findAndClickImageTemplate_(template='images/DanceSong.png', threshold=0.8, image_count=1, cache=True)
 
     def rebuffSelf(self):
-        """"Ребафф на селфах"""
+        """Ребафф на селфах"""
         if self.useKeyboard:
             self.blockKeyboard = True
             self.virtualKeyboard.LEFT_ALT.down()
@@ -461,7 +461,7 @@ class Character(object):
         time.sleep(0.5)
         self.screen.refreshPrintScreen()
         self._findAndClickImageTemplate_(template='images/buff_all.png', threshold=0.8, image_count=1)
-        time.sleep(0.5)
+        time.sleep(1)
 
         self.virtualKeyboard.ESC.press()
         time.sleep(0.5)
