@@ -286,6 +286,29 @@ class Character(object):
             self.callDanceSong()
             return
 
+    def assisterActions(self):
+        """Действия для режима атаки"""
+        if not self.attackMode:
+            return
+        if self.hasTarget:
+            # Атаковать, если у цели есть шкала HP
+            if self.targetHP is not None and self.targetHP > 0 or self.targetNoHP is not None and self.targetNoHP > 0:
+                # Атаковать, если разрешена атака программно
+                if self.allowAttack:
+                    self.printLog("Нажимаю F4")
+                    self.virtualKeyboard.F4.press()
+                    time.sleep(2)
+            # Закрыть цель, если это Игрок/NPC
+            else:
+                self.printLog("Нажимаю F5")
+                self.virtualKeyboard.F5.press()
+                time.sleep(2)
+        else:
+            self.printLog("Нажимаю F5")
+            self.virtualKeyboard.F5.press()
+            time.sleep(2)
+            
+
     def sendCommandToParty(self, command):
         """Отправка команд команде"""
         if self.server is not None and len(self.server.connectionList) > 0:
