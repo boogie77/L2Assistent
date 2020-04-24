@@ -57,6 +57,7 @@ class Character(object):
         self.allowRegularBuff = True  # Признак возможности регулярного бафа (раз в полторы минуты например)
         self.needRebuff = False  # Признак необходимости бафнуться
         self.reBuffType = "self"  # Тип бафа ("hunter", "self")
+        self.rebuffTime = 10  # Время необходимое персонажу чтобы завершить свой ребаф
         self.lastBuffTime = None  # Дата последнего ребафа
         self.buffInterval = 600  # Интервал для основного бафа (в секундах)
         self.needRegularBuff = False  # Признак необходимости применить регулярный бафф
@@ -228,8 +229,8 @@ class Character(object):
         self.getTargetSpecifications()
         # Если ближайшая цель не найдена, то вызыватся макрос /target ...
         # У персонажа должно быть достаточно здоровья
-        if not self.hasTarget and self.HP is not None and self.HP > 75:
-            self.findNextTarget()
+        if (not self.hasTarget or self.targetHP == 0) and self.HP is not None and self.HP > 65:
+            self.findNextTarget1()
 
     def checkAllowFindTarget(self):
         """Проверка разрешения поиск цели"""
@@ -237,7 +238,7 @@ class Character(object):
         if not self.attackMode:
             return False
         # Не искать цель, если цель уже есть
-        elif self.hasTarget:
+        elif (self.hasTarget and self.targetHP > 0):
             return False
         # Не искать цель, если требуется ребаф
         elif self.needRebuff:
@@ -358,8 +359,8 @@ class Character(object):
                         self.printLog("10 Секунд назад было %s ХП, а сейчас: %s." % (
                             str(self.everyTenSecondsTargetHP), str(self.targetHP)))
                         self.everyTenSecondsTry += 1
-                        # Если цель не атакуется 30 секунд подряд
-                        if self.everyTenSecondsTry >= 3:
+                        # Если цель не атакуется 20 секунд подряд
+                        if self.everyTenSecondsTry >= 2:
                             self.printLog("Отмена цели.")
                             self.cancelTargetAndStepBack()  # Отменим цель и сделаем пару шагов назад
                     else:
@@ -409,16 +410,15 @@ class Character(object):
             self.rebuffHunter()
         else:
             self.rebuffSelf()
-            # Подождем 8 секунд после ребафа
-            time.sleep(10)
-            self.virtualKeyboard.ESC.press()
+            # Подождем n секунд после ребафа
+            time.sleep(self.rebuffTime)
             time.sleep(0.1)
 
     def regularBuff(self):
         """Запуск регулярного бафа"""
         self.printLog("Активация регулярного бафа.")
         if self.useKeyboard:
-            self.virtualKeyboard.F10.press()
+            self.virtualKeyboard.F7.press()
         else:
             self._findAndClickImageTemplate_(template='images/regular_buff.png', threshold=0.8, image_count=1,
                                              cache=True)
@@ -453,14 +453,8 @@ class Character(object):
     def rebuffSelf(self):
         """Ребафф на селфах"""
         if self.useKeyboard:
-            self.blockKeyboard = True
-            self.virtualKeyboard.LEFT_ALT.down()
+            self.virtualKeyboard.F8.press()
             time.sleep(0.1)
-            self.virtualKeyboard.N9.press()
-            time.sleep(0.02)
-            self.virtualKeyboard.LEFT_ALT.up()
-            time.sleep(0.1)
-            self.blockKeyboard = False
         else:
             self._findAndClickImageTemplate_(template='images/buff_button.png', threshold=0.8, image_count=1,
                                              cache=True)
@@ -634,7 +628,7 @@ class Character(object):
         self.printLog("Поиск ближейшей цели")
         self.resetAttackInfo()
         if self.useKeyboard:
-            self.virtualKeyboard.F11.press()
+            self.virtualKeyboard.F9.press()
         else:
             self._findAndClickImageTemplate_(template='images/nexttarget_button.png', threshold=0.8, image_count=1,
                                              cache=True)
@@ -643,9 +637,37 @@ class Character(object):
         self.screen.refreshPrintScreen()
         self.getTargetSpecifications()
 
-    def findNextTarget(self):
+    def findNextTarget1(self):
         """Поиск ближайшей цели (Нажатие макроса /target ... )"""
-        self.printLog("Использование макроса для поиска цели")
+        self.printLog("Использование 1 макроса для поиска цели")
+        if self.useKeyboard:
+            self.virtualKeyboard.F10.press()
+        else:
+            self._findAndClickImageTemplate_(template='images/find_target.png', threshold=0.8, image_count=1,
+                                             cache=True)
+        time.sleep(0.25)
+        self.screen.refreshPrintScreen()
+        self.getTargetSpecifications()
+        if (not self.hasTarget or self.targetHP == 0):
+            self.findNextTarget2()
+
+    def findNextTarget2(self):
+        """Поиск ближайшей цели (Нажатие макроса /target ... )"""
+        self.printLog("Использование 2 макроса для поиска цели")
+        if self.useKeyboard:
+            self.virtualKeyboard.F11.press()
+        else:
+            self._findAndClickImageTemplate_(template='images/find_target.png', threshold=0.8, image_count=1,
+                                             cache=True)
+        time.sleep(0.25)
+        self.screen.refreshPrintScreen()
+        self.getTargetSpecifications()
+        if (not self.hasTarget or self.targetHP == 0):
+            self.findNextTarget3()
+
+    def findNextTarget3(self):
+        """Поиск ближайшей цели (Нажатие макроса /target ... )"""
+        self.printLog("Использование 3 макроса для поиска цели")
         if self.useKeyboard:
             self.virtualKeyboard.F12.press()
         else:
