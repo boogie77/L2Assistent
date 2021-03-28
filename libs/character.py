@@ -288,7 +288,7 @@ class Character(object):
             return
 
     def assisterActions(self):
-        """Действия для режима атаки"""
+        """Действия для режима Ассиста"""
         if not self.attackMode:
             return
         if self.hasTarget:
@@ -311,7 +311,7 @@ class Character(object):
             
 
     def sendCommandToParty(self, command):
-        """Отправка команд команде"""
+        """Отправка команд для пати"""
         if self.server is not None and len(self.server.connectionList) > 0:
             self.server.sendToAll(command)
 
@@ -689,7 +689,7 @@ class Character(object):
                     self.pressReeling()
 
     def pressFishing(self):
-        """Заикнуть удочку на рыбалку"""
+        """Закинуть удочку на рыбалку"""
         self.printLog("Использование макроса Закидывания Удочки")
         if self.useKeyboard:
             self.virtualKeyboard.F5.press()
@@ -698,7 +698,7 @@ class Character(object):
                                              cache=True)
 
     def pressReeling(self):
-        """Натиягивание лезки"""
+        """Натягивание лезки"""
         self.printLog("Использование макроса Натиягивания лезки (Reeling)")
         if self.useKeyboard:
             self.virtualKeyboard.F3.press()
@@ -726,7 +726,7 @@ class Character(object):
         self.allowPumping = True
 
     def _disableReeling_(self):
-        """Блокировка способности Pumping на 2 сек"""
+        """Блокировка способности Reeling на 2 сек"""
         self.allowReeling = False
         time.sleep(2)
         self.allowReeling = True

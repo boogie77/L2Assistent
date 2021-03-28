@@ -1,4 +1,4 @@
-"""Запуск управления персонажем атакующего типа для фарма"""
+"""Запуск управления персонажем в режиме отладки"""
 from libs.character import Character
 
 la2Character = Character(debug_mode=True)

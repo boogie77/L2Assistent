@@ -3,7 +3,7 @@ from libs.character import Character
 
 
 class Fisher(Character):
-    """Класс управления воином, унаследован от общего класса: Character"""
+    """Класс управления рыбаком, унаследован от общего класса: Character"""
 
     def main(self):
         """Главный метод логики работы бота"""
